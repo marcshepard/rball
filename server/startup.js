@@ -1,5 +1,6 @@
-// Add user helper
+/* startup.js - server-only scripting page for the rball site */
 
+// Populate new user objects with defaults for rball-specific extended properties
 Accounts.onCreateUser(function(options, user) {
 	// We still want the default hook's 'profile' behavior.
     console.log ("creating user " + user.username);
@@ -21,6 +22,7 @@ Accounts.onCreateUser(function(options, user) {
     user.profile.aboveResult = "";
     user.profile.belowResult = "";
     user.profile.bonusResult = "";
+    user.profile.activeNextRound = 0;
 
     user.prevRank = 0;
     user.prevAboveUserName = "";
@@ -68,7 +70,8 @@ function startNewRound (msg, endDate) {
     // Send email
 }
 
-
+// Ugly hard-coded set of users to import (if no users exist yet)
+// Should replace this with an input script that loads data from a CSV.
 var migrated_users = [
 	{
 		username: "Marc Shepard",
@@ -138,8 +141,8 @@ var migrated_users = [
 ];
 
 
-// Startup
-
+// Startup code
+// Currently does initial DB population if DB has not yet been populated (will remove that part after initial development)
 Meteor.startup(function () {
     console.log("Server is starting...");
 	

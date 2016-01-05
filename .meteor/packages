@@ -21,3 +21,4 @@ twbs:bootstrap
 accounts-ui
 iron:router
 accounts-password
+accounts-facebook

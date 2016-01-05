@@ -1,15 +1,16 @@
-// Accounts configuration - require a user name for all users
+/* rball.js - main scripting page for the rball site */
 
+// Accounts configuration; require a user name for all users
 Accounts.ui.config({
     passwordSignupFields: "USERNAME_AND_EMAIL"
 });
 
-// Routing 
-
+// Routing package lets us appear to have multiple pages without the overhead (and context loss) of a new page load
 Router.configure({
   layoutTemplate: 'ApplicationLayout'
 });
 
+// Render this template in the "home" page
 Router.route('/', function () {
   this.render('navbar', {
     to:"navbar"
@@ -21,6 +22,7 @@ Router.route('/', function () {
   $("#nav_home").addClass("active");
 });
 
+// Render this template in the "about" page
 Router.route('/about', function () {
   this.render('navbar', {
     to:"navbar"
@@ -32,6 +34,7 @@ Router.route('/about', function () {
   $("#nav_about").addClass("active");
 });
 
+// Render this template in the "settings" page
 Router.route('/settings', function () {
   this.render('navbar', {
     to:"navbar"
@@ -43,6 +46,7 @@ Router.route('/settings', function () {
   $("#nav_settings").addClass("active");
 });
 
+// Helper functions (providing {{var}} support) for home template
 Template.home.helpers({
     roundEnds:function(){
         if (Settings.findOne() == null)
@@ -62,6 +66,7 @@ Template.home.helpers({
     }
 });
 
+// Helper functions (providing {{var}} support) for activePlayers template
 Template.activePlayers.helpers({
     players:function(){
         var p = Meteor.users.find({active:1},{sort: {points: -1}}).fetch();
@@ -72,6 +77,7 @@ Template.activePlayers.helpers({
     }
 });
 
+// Function used in the enterResults helper - to get the right "selector index" for a given persisted result
 function resultStringToSelectorIx (str) {
     switch (str) {
         case null:
@@ -90,6 +96,7 @@ function resultStringToSelectorIx (str) {
     }
 }
 
+// Function used in the enterResults helper - when entering a result for playerA, enter opposite result for player B
 function oppositeResult (str) {
     switch (str) {
         case null:
@@ -108,13 +115,15 @@ function oppositeResult (str) {
     }
 }
 
-function playedRequiredMatches (user) {
+// Function used in the enterResults helper - see if a player has played required matches (so eligable for a bonus match)
+function playedRequiredMatches(user) {
     if ((user.profile.aboveResult != null) && (user.profile.belowResult != null) &&
             (user.profile.aboveResult != "") && (user.profile.belowResult != ""))
         return true;
     return false;
 }
 
+// Helper functions (providing {{var}} support) for enterResults template
 Template.enterResults.helpers({
     above:function(){
         var user = Meteor.users.findOne ({_id:Meteor.user().aboveUser});
@@ -172,15 +181,16 @@ Template.enterResults.helpers({
     }
 });
 
+// Event handler for enterResults template - updates this user and the user they played (with opposite results)
 Template.enterResults.events({
     'click #submit_results': function(event){
-        console.log ("Clicked...");
+        var resultStatus = "";
         var user = Meteor.user();
         
         var above = document.getElementById("above_result");
         var aboveResult = above.options[above.selectedIndex].text;
         if (user.profile.aboveResult != aboveResult) {
-            console.log ("Setting above result to " + aboveResult);
+            resultStatus += "Above changed to " + aboveResult + ". ";
             Meteor.users.update ({_id:user._id}, {$set: {"profile.aboveResult": aboveResult}});
             Meteor.users.update ({_id:user.aboveUser}, {$set: {"profile.belowResult": oppositeResult(aboveResult)}});
         }
@@ -188,7 +198,7 @@ Template.enterResults.events({
         var below = document.getElementById("below_result");
         var belowResult = below.options[below.selectedIndex].text;
         if (user.profile.belowResult != belowResult) {
-            console.log ("Setting below result to " + belowResult);
+            resultStatus += "Below changed to " + belowResult + ". ";
             Meteor.users.update ({_id:user._id}, {$set: {"profile.belowResult": belowResult}});
             Meteor.users.update ({_id:user.belowUser}, {$set: {"profile.aboveResult": oppositeResult(belowResult)}});
         }
@@ -199,17 +209,26 @@ Template.enterResults.events({
         var bonusResultSelector = document.getElementById("bonus_result");
         var bonusResult = bonusResultSelector.options[bonusResultSelector.selectedIndex].text;
         if ((bonusUser != null) && (user.profile.bonusResult != bonusResult)) {
-            console.log ("Setting bonus result against " + bonusUserName + " to " + bonusResult);
+            resultStatus += "Bonus against " + bonusUserName + " changed to " + bonusResult + ".";
             var bonusUserId = bonusUser._id;
             Meteor.users.update ({_id:user._id}, {$set: {"profile.bonusUser": bonusUserId}});
             Meteor.users.update ({_id:user._id}, {$set: {"profile.bonusResult": bonusResult}});
             Meteor.users.update ({_id:bonusUserId}, {$set: {"profile.bonusUser": user._id}});
             Meteor.users.update ({_id:bonusUserId}, {$set: {"profile.bonusResult": oppositeResult(bonusResult)}});
         }
+
+        if (resultStatus.length <= 1)
+            resultStatus = "Nothing changed"
+
+        document.getElementById("submit_results_status").innerHTML = resultStatus;
     }
 });
 
+// Helper functions (providing {{var}} support) for settings template
 Template.settings.helpers({
+    activeNextRoundIx:function () {
+        return 1; // - Meteor.user().profile.activeNextRound;
+    },
     username:function(){
         return Meteor.user().username;
     },
@@ -218,5 +237,54 @@ Template.settings.helpers({
     },
     admin:function(){
         return Meteor.user().admin;
+    }
+});
+
+// Event handler for settings template - updates settings
+// TODO; not yet working (getting permissions error and need to fix)
+Template.settings.events({
+    'click #submit_settings': function(event){
+        var settingsStatus = "";
+        var user = Meteor.user();
+        var userId = user._id;
+        var changes = "";
+
+        var newUserName = document.getElementById("new_username").value;
+        var newEmail = document.getElementById("new_email").value;
+        var newActive = 1 - document.getElementById("new_active").selectedIndex;
+        
+        if ((newUserName != user.username) && (newUserName.length > 2)) {
+            settingsStatus += "New user name " + newUserName + ". ";
+            changes += "username:" + newUserName;
+        }
+
+        if ((newEmail != user.emails[0].address) && (newEmail.length > 10)) {
+            settingsStatus += "New email address " + newEmail + ". ";
+            if (changes.length > 0)
+                changes += ", ";
+            changes += "emails[0].address:" + newEmail;
+        }
+
+        if (newActive != user.profile.activeNextRound) {
+            settingsStatus += "New active " + newActive;
+            if (changes.length > 0)
+                changes += ", ";
+            changes += "profile.activeNextRound:" + newActive;
+        }
+
+        if (settingsStatus.length <= 1) {
+            settingsStatus = "Nothing changed";
+        } else {
+            console.log("About to call Meteor.users.update with " + changes)
+            try {
+                //Meteor.users.update({_id: userId}, {$set: {changes}})
+            }
+            catch (err) {
+                settingsStatus = err.message;
+            }
+        }
+        
+        document.getElementById("submit_settings_status").innerHTML = settingsStatus;
+        document.getElementById("submit_settings_status").innerHTML = "Update not implemented yet";
     }
 });

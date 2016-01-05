@@ -1,3 +1,6 @@
+<!-- rball.html; the main web page for the site -->
+
+<!-- Title and icon that appear in browser tab for this site -->
 <head>
 	<title>rball</title>
 	<link rel="shortcut icon" href="/favicon.ico">
@@ -7,11 +10,13 @@
 <body>
 </body>
 
+<!-- Template layout for all virtual pages -->
 <template name="ApplicationLayout">
     {{> yield "navbar"}}
     {{> yield "main"}}  
 </template>
 
+<!-- Navigation bar, collapses to "hamburger" on smaller screens -->
 <template name="navbar">
     <nav class="navbar navbar-default">
         <div class="container-fluid">
@@ -35,6 +40,7 @@
     </nav>
 </template>
 
+<!-- Home page, with context-specific text -->
 <template name="home">
     <div class="container">
         <p>Welcome to the <a href="/about">MSFT racquetball ladder</a>! <b>The current round ends {{roundEnds}}.</b> {{roundMsg}}
@@ -52,6 +58,7 @@
     </div>
 </template>
 
+<!-- enterResults form appears on home page for logged in active users -->
 <template name="enterResults">
     <div>
         <p><b>Report results</b></p>
@@ -59,36 +66,44 @@
         <table class="form_table">
 {{#if above}}
             <tr>
-                <td align="right" class="results_table">Above vs {{above}}: &nbsp;</td>
-                <td class="results_table"><select id="above_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
+                <td class="form_table_data" align="right">Above vs {{above}}: &nbsp;</td>
+                <td class="form_table_data"><select id="above_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
             </tr>
-            <script>document.getElementById("above_result").selectedIndex = {{aboveIx}};</script>
+
 {{/if}}
 {{#if below}}
             <tr>
-                <td align="right" class="results_table">Below vs {{below}}: &nbsp;</td>
-                <td class="results_table"><select class="b" id="below_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
+                <td class="form_table_data" align="right" >Below vs {{below}}: &nbsp;</td>
+                <td class="form_table_data"><select class="b" id="below_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
             </tr>
-            <script>document.getElementById("below_result").selectedIndex = {{belowIx}};</script>
+            
 {{/if}}
             <tr>
-                <td align="right" class="results_table">Bonus vs
+                <td class="form_table_data" align="right" >Bonus vs
                     <select id="bonus_user">
 {{#each bonusUsers}}
                         <option>{{username}}</option>
 {{/each}}
                     </select>: &nbsp;</td>
-                <td class="results_table"><select id="bonus_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
+                <td class="form_table_data"><select id="bonus_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
             </tr>
-            <script>document.getElementById("bonus_result").selectedIndex = {{bonusIx}}; document.getElementById("bonus_user").selectedIndex = {{bonusUserIx}};</script>
             <tr>
-                <td class="results_table"><button type="submit" id="submit_results">Report</button></td>
+                <td class="form_table_data"><button type="submit" id="submit_results" onmouseout="clearResultsStatus()">Report</button></td>
+                <td class="form_table_data"><span id="submit_results_status"></span></td>
             </tr>
         </table>
         <br/>
     </div>
+    <script>
+        document.getElementById("above_result").selectedIndex = {{aboveIx}};
+        document.getElementById("below_result").selectedIndex = {{belowIx}};
+        document.getElementById("bonus_result").selectedIndex = {{bonusIx}};
+        document.getElementById("bonus_user").selectedIndex = {{bonusUserIx}};
+        function clearResultsStatus() {document.getElementById("submit_results_status").innerHTML = ""};
+    </script>
 </template>
 
+<!-- activePlayers list appears on home page for any logged in users. XXX - should we restrict to just "approved" users? -->
 <template name="activePlayers">
     <p><b>Active players this round</b></p>
     <div class="table-responsive">
@@ -121,6 +136,7 @@
     </div>
 </template>
 
+<!-- About page - info about the ladder and rules -->
 <template name="about">
     <div class="container">
         <h1>Ladder Overview</h1>
@@ -156,42 +172,47 @@
     </div>
 </template>
 
+<!-- Settings page - with additional settings options for admins -->
 <template name="settings">
     <div class="container">
 {{#if currentUser}}
-        <p><b>User settings</b></p>
-        <p>These are not yet hooked up, but trivial to do.</p>    
+        <p><b>User settings</b></p> 
         <table class="form_table">
             <tr>
-                <td align="right">Active Next Round: &nbsp;</td>
-                <td class="results_table"><select><option>Yes</option><option>No</option></select></td>
+                <td class="form_table_data" align="right">Active Next Round: &nbsp;</td>
+                <td class="form_table_data"><select id="new_active"><option>Yes</option><option>No</option></select></td>
             </tr>
             <tr>
-                <td align="right">User Name: &nbsp;</td>
-                <td class="results_table"><textarea maxlength="20" cols="20" rows="1">{{username}}</textarea></td>
+                <td class="form_table_data" align="right">User Name: &nbsp;</td>
+                <td class="form_table_data"><textarea id="new_username" maxlength="20" cols="20" rows="1">{{username}}</textarea></td>
             </tr>
             <tr>
-                <td align="right">Email: &nbsp;</td>
-                <td class="results_table"><textarea maxlength="30" cols="30" rows="1">{{email}}</textarea></td>
+                <td class="form_table_data" align="right">Email: &nbsp;</td>
+                <td class="form_table_data"><textarea id="new_email" maxlength="30" cols="30" rows="1">{{email}}</textarea></td>
             </tr>
             <tr>
-                <td><button type="submit" id="update_settings">Update</button></td>
+                <td class="form_table_data"><button type="submit" id="submit_settings" onmouseout="clearSettingsStatus()">Update</button></td>
+                <td class="form_table_data"><span id="submit_settings_status"></span></td>
             </tr>
         </table>
         <br/>
 {{#if admin}}
-        <p><b>(Admin) User settings</b></p>
-        <p>TODO: Approve new users, unapprove users, delete users, change existing user attributes (rank/active/points)</p>
-        <br/>
         <p><b>(Admin) Current round settings</b></p>
         <p>Change round message, extend end date</p>
         <br/>
         <p><b>(Admin) New Round</b></p>
         <p>Start new round, with specified end date and round message</p>
-        <br/>        
+        <br/>
+        <p><b>(Admin) User management</b></p>
+        <p>TODO: Approve new users, unapprove users, delete users, change existing user attributes (rank/active/points)</p>
+        <br />
 {{/if}}
 {{else}}
         <p>You must sign in to configure your settings</p>
 {{/if}}
     </div>
+    <script>
+        //document.getElementById("new_active").selectedIndex = {{activeNextRoundIx}};
+        function clearSettingsStatus() {document.getElementById("submit_settings_status").innerHTML = ""};
+    </script>
 </template>
