@@ -1,0 +1,13 @@
+/* CSS declarations go here */
+
+.img_logo{
+	max-height:40px;
+}
+
+.results_table{
+    padding: 5px;
+}
+
+.form_table {
+    background-color: #F8F8F8;
+}
