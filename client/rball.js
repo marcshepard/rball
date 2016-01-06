@@ -226,10 +226,17 @@ Template.enterResults.events({
 
 // Helper functions (providing {{var}} support) for settings template
 Template.settings.helpers({
-    activeNextRoundIx:function () {
-        return 1; // - Meteor.user().profile.activeNextRound;
+    activeNextRoundIx: function () {
+        try {
+            var ix = (1 - (Meteor.user().profile.activeNextRound == "1"));
+            return ix;
+        }
+        catch (e) {
+            console.log("activeNextRoundIx exception = " + e.message);
+        }
+        return 1;
     },
-    username:function(){
+    name:function(){
         return Meteor.user().username;
     },
     email:function(){
@@ -237,54 +244,62 @@ Template.settings.helpers({
     },
     admin:function(){
         return Meteor.user().admin;
+    },
+    roundEnds: function () {
+        return Settings.findOne().roundEnds;
+    },
+    roundMsg: function () {
+        return Settings.findOne().roundMsg;
+    },
+    newRoundEnds: function () {
+        var oldDate = new Date(Settings.findOne().roundEnds);
+        var newDate = oldDate.getDate() + 14;
+        return newDate;
+    },
+    players: function () {
+        var p = Meteor.users.find({}, {sort: {username: 1}, fields: {username: 1, approved: 1}}).fetch();
+        return p;
     }
 });
 
 // Event handler for settings template - updates settings
-// TODO; not yet working (getting permissions error and need to fix)
 Template.settings.events({
     'click #submit_settings': function(event){
         var settingsStatus = "";
         var user = Meteor.user();
         var userId = user._id;
-        var changes = "";
-
-        var newUserName = document.getElementById("new_username").value;
-        var newEmail = document.getElementById("new_email").value;
-        var newActive = 1 - document.getElementById("new_active").selectedIndex;
         
+        var newUserName = document.getElementById("new_username").value;
         if ((newUserName != user.username) && (newUserName.length > 2)) {
             settingsStatus += "New user name " + newUserName + ". ";
-            changes += "username:" + newUserName;
+            Meteor.users.update({_id: userId}, {$set: {"username":newUserName}})
         }
 
+        var newEmail = document.getElementById("new_email").value;
         if ((newEmail != user.emails[0].address) && (newEmail.length > 10)) {
             settingsStatus += "New email address " + newEmail + ". ";
-            if (changes.length > 0)
-                changes += ", ";
-            changes += "emails[0].address:" + newEmail;
+            Meteor.users.update({_id: userId}, {$set: {"emails[0].address": newEmail}})
         }
 
+        var newActive = 1 - document.getElementById("new_active").selectedIndex;
         if (newActive != user.profile.activeNextRound) {
             settingsStatus += "New active " + newActive;
-            if (changes.length > 0)
-                changes += ", ";
-            changes += "profile.activeNextRound:" + newActive;
+            Meteor.users.update({_id: userId}, {$set: {"profile.activeNextRound": newActive}})
         }
 
         if (settingsStatus.length <= 1) {
             settingsStatus = "Nothing changed";
-        } else {
-            console.log("About to call Meteor.users.update with " + changes)
-            try {
-                //Meteor.users.update({_id: userId}, {$set: {changes}})
-            }
-            catch (err) {
-                settingsStatus = err.message;
-            }
         }
-        
+
         document.getElementById("submit_settings_status").innerHTML = settingsStatus;
-        document.getElementById("submit_settings_status").innerHTML = "Update not implemented yet";
+    },
+    'click #submit_round': function (event) {
+        document.getElementById("submit_round_status").innerHTML = "Not implemented";
+    },
+    'click #submit_newround': function (event) {
+        document.getElementById("submit_newround_status").innerHTML = "Not implemented";
+    },
+    'click #nag_round': function (event) {
+        document.getElementById("nag_round_status").innerHTML = "Not implemented";
     }
 });

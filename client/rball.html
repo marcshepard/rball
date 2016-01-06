@@ -103,7 +103,7 @@
     </script>
 </template>
 
-<!-- activePlayers list appears on home page for any logged in users. XXX - should we restrict to just "approved" users? -->
+<!-- activePlayers list appears on home page for any logged in users -->
 <template name="activePlayers">
     <p><b>Active players this round</b></p>
     <div class="table-responsive">
@@ -179,40 +179,94 @@
         <p><b>User settings</b></p> 
         <table class="form_table">
             <tr>
-                <td class="form_table_data" align="right">Active Next Round: &nbsp;</td>
+                <td class="form_table_data" align="right">Active: &nbsp;</td>
                 <td class="form_table_data"><select id="new_active"><option>Yes</option><option>No</option></select></td>
             </tr>
             <tr>
-                <td class="form_table_data" align="right">User Name: &nbsp;</td>
-                <td class="form_table_data"><textarea id="new_username" maxlength="20" cols="20" rows="1">{{username}}</textarea></td>
+                <td class="form_table_data" align="right">Name: &nbsp;</td>
+                <td class="form_table_data"><textarea id="new_username" maxlength="20" cols="20" rows="1">{{name}}</textarea></td>
             </tr>
             <tr>
                 <td class="form_table_data" align="right">Email: &nbsp;</td>
-                <td class="form_table_data"><textarea id="new_email" maxlength="30" cols="30" rows="1">{{email}}</textarea></td>
+                <td class="form_table_data"><textarea disabled="disabled" id="new_email" maxlength="30" cols="30" rows="1">{{email}}</textarea></td>
             </tr>
             <tr>
-                <td class="form_table_data"><button type="submit" id="submit_settings" onmouseout="clearSettingsStatus()">Update</button></td>
+                <td class="form_table_data"><button type="submit" id="submit_settings" onmouseout="clearStatus('submit_settings_status')">Update</button></td>
                 <td class="form_table_data"><span id="submit_settings_status"></span></td>
             </tr>
         </table>
         <br/>
 {{#if admin}}
         <p><b>(Admin) Current round settings</b></p>
-        <p>Change round message, extend end date</p>
-        <br/>
-        <p><b>(Admin) New Round</b></p>
-        <p>Start new round, with specified end date and round message</p>
-        <br/>
-        <p><b>(Admin) User management</b></p>
-        <p>TODO: Approve new users, unapprove users, delete users, change existing user attributes (rank/active/points)</p>
+        <table class="form_table">
+            <tr>
+                <td class="form_table_data"><button type="submit" id="nag_round" onmouseout="clearStatus('nag_round_status')">Send nag email</button></td>
+                <td class="form_table_data"><span id="nag_round_status"></span></td>
+            </tr>
+        </table>
         <br />
+        <table class="form_table">
+            <tr>
+                <td class="form_table_data" align="right">Ends: &nbsp;</td>
+                <td class="form_table_data"><input type="date" id="round_ends" defaultValue="{{roundEnds}}"/></td>
+            </tr>
+            <tr>
+                <td class="form_table_data" align="right">Message: &nbsp;</td>
+                <td class="form_table_data"><textarea id="round_msg" cols="40" rows="3">{{roundMsg}}</textarea></td>
+            </tr>
+            <tr>
+                <td class="form_table_data"><button type="submit" id="submit_round" onmouseout="clearStatus('submit_round_status')">Update</button></td>
+                <td class="form_table_data"><span id="submit_round_status"></span></td>
+            </tr>
+        </table>
+        <br />
+
+        <p><b>(Admin) Start new round</b></p>
+        <table class="form_table">
+            <tr>
+                <td class="form_table_data" align="right">Ends: &nbsp;</td>
+                <td class="form_table_data"><input type="date" id="new_round_ends" defaultValue="{{newRoundEnds}}" /></td>
+            </tr>
+            <tr>
+                <td class="form_table_data" align="right">Message: &nbsp;</td>
+                <td class="form_table_data"><textarea id="round_msg" cols="40" rows="3">{{newRoundMsg}}</textarea></td>
+            </tr>
+            <tr>
+                <td class="form_table_data"><button type="submit" id="submit_newround" onmouseout="clearStatus('submit_newround_status')">Generate...</button></td>
+                <td class="form_table_data"><span id="submit_newround_status"></span></td>
+            </tr>
+        </table>
+        <br />
+
+        <p><b>(Admin) User management</b></p>
+        <table class="table table-striped table-condensed">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Approved</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+    {{#each players}}
+                <tr>
+                    <td>{{username}}</td>
+                    <td><input type="checkbox" checked/></td>
+                    <td><input type="checkbox" /></td>
+                    <td><button type="submit" disabled>Update</button></td>
+                </tr>
+    {{/each}}
+            </tbody>
+        </table>
 {{/if}}
 {{else}}
         <p>You must sign in to configure your settings</p>
 {{/if}}
     </div>
+{{#if currentUser}}
     <script>
-        //document.getElementById("new_active").selectedIndex = {{activeNextRoundIx}};
-        function clearSettingsStatus() {document.getElementById("submit_settings_status").innerHTML = ""};
+        document.getElementById("new_active").selectedIndex = {{activeNextRoundIx}};
+        function clearStatus(tag) {document.getElementById(tag).innerHTML = ""};
     </script>
+{{/if}}
 </template>
