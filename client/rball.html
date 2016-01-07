@@ -12,12 +12,6 @@
 
 <!-- Template layout for all virtual pages -->
 <template name="ApplicationLayout">
-    {{> yield "navbar"}}
-    {{> yield "main"}}  
-</template>
-
-<!-- Navigation bar, collapses to "hamburger" on smaller screens -->
-<template name="navbar">
     <nav class="navbar navbar-default">
         <div class="container-fluid">
             <div class="navbar-header">
@@ -38,7 +32,9 @@
             </div>
         </div>
     </nav>
+    {{> yield "main"}}  
 </template>
+
 
 <!-- Home page, with context-specific text -->
 <template name="home">
@@ -126,9 +122,21 @@
                     <td>{{points}}</td>
                     <td><a href="mailto:{{email}}">{{username}}</a></td>
                     <td>{{prevRank}}</td>
-                    <td>{{prevAboveResult}} {{prevAboveUserName}}</td>
-                    <td>{{prevBelowResult}} {{prevBelowUserName}}</td>
-                    <td>{{prevBonusResult}} {{prevBonusUserName}}</td>
+                    <td>
+    {{#if prevAboveResult}}
+                        {{prevAboveResult}}({{prevAboveUserName}})
+    {{/if}}
+                    </td>
+                    <td>
+    {{#if prevBelowResult}}
+                        {{prevBelowResult}}({{prevBelowUserName}})
+    {{/if}}
+                    </td>
+                    <td>
+    {{#if prevBonusResult}}
+                        {{prevBonusResult}}({{prevBonusUserName}})
+    {{/if}}
+                    </td>
                 </tr>
 {{/each}}
             </tbody>
@@ -258,6 +266,7 @@
     {{/each}}
             </tbody>
         </table>
+        <br/>
 {{/if}}
 {{else}}
         <p>You must sign in to configure your settings</p>

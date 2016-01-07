@@ -12,9 +12,6 @@ Router.configure({
 
 // Render this template in the "home" page
 Router.route('/', function () {
-  this.render('navbar', {
-    to:"navbar"
-  });
   this.render('home', {
     to:"main"
   });
@@ -24,9 +21,6 @@ Router.route('/', function () {
 
 // Render this template in the "about" page
 Router.route('/about', function () {
-  this.render('navbar', {
-    to:"navbar"
-  });
   this.render('about', {
     to:"main"
   });
@@ -36,9 +30,6 @@ Router.route('/about', function () {
 
 // Render this template in the "settings" page
 Router.route('/settings', function () {
-  this.render('navbar', {
-    to:"navbar"
-  });
   this.render('settings', {
     to:"main"
   });
@@ -49,9 +40,10 @@ Router.route('/settings', function () {
 // Helper functions (providing {{var}} support) for home template
 Template.home.helpers({
     roundEnds:function(){
-        if (Settings.findOne() == null)
+        var settings =Settings.findOne();
+        if (settings == null)
             return "Sometime soon";
-        return (Settings.findOne().roundEnds).toDateString();
+        return (settings.roundEnds).toDateString();
     },
     roundMsg:function(){
         if (Settings.findOne() == null)
@@ -59,17 +51,14 @@ Template.home.helpers({
         return Settings.findOne().roundMsg;
     },
     activeUser:function(){
-        if (Meteor.user()){
-            return Meteor.user().active;
-        }
-        return false;
+        return Meteor.user().active;
     }
 });
 
 // Helper functions (providing {{var}} support) for activePlayers template
 Template.activePlayers.helpers({
     players:function(){
-        var p = Meteor.users.find({active:1},{sort: {points: -1}}).fetch();
+        var p = Meteor.users.find({active:1},{sort: {rank: 1}}).fetch();
         for (var ix = 0; ix < p.length; ix++) {
             p[ix].email = p[ix].emails[0].address;
         }
@@ -181,6 +170,8 @@ Template.enterResults.helpers({
     }
 });
 
+
+
 // Event handler for enterResults template - updates this user and the user they played (with opposite results)
 Template.enterResults.events({
     'click #submit_results': function(event){
@@ -193,6 +184,7 @@ Template.enterResults.events({
             resultStatus += "Above changed to " + aboveResult + ". ";
             Meteor.users.update ({_id:user._id}, {$set: {"profile.aboveResult": aboveResult}});
             Meteor.users.update ({_id:user.aboveUser}, {$set: {"profile.belowResult": oppositeResult(aboveResult)}});
+            Meteor.call ("sendResults", user.aboveUser, aboveResult);
         }
         
         var below = document.getElementById("below_result");
@@ -201,6 +193,7 @@ Template.enterResults.events({
             resultStatus += "Below changed to " + belowResult + ". ";
             Meteor.users.update ({_id:user._id}, {$set: {"profile.belowResult": belowResult}});
             Meteor.users.update ({_id:user.belowUser}, {$set: {"profile.aboveResult": oppositeResult(belowResult)}});
+            Meteor.call ("sendResults", user.belowUser, belowResult);
         }
 
         var bonusUserSelector = document.getElementById("bonus_user");
@@ -215,6 +208,7 @@ Template.enterResults.events({
             Meteor.users.update ({_id:user._id}, {$set: {"profile.bonusResult": bonusResult}});
             Meteor.users.update ({_id:bonusUserId}, {$set: {"profile.bonusUser": user._id}});
             Meteor.users.update ({_id:bonusUserId}, {$set: {"profile.bonusResult": oppositeResult(bonusResult)}});
+            Meteor.call ("sendResults", user.bonusUserId, bonusResult);
         }
 
         if (resultStatus.length <= 1)
@@ -246,13 +240,22 @@ Template.settings.helpers({
         return Meteor.user().admin;
     },
     roundEnds: function () {
-        return Settings.findOne().roundEnds;
+        var settings = Settings.findOne();
+        if (settings == null)
+            return "";
+        return settings.roundEnds;
     },
     roundMsg: function () {
-        return Settings.findOne().roundMsg;
+        var settings = Settings.findOne();
+        if (settings == null)
+            return "";
+        return settings.roundMsg;
     },
     newRoundEnds: function () {
-        var oldDate = new Date(Settings.findOne().roundEnds);
+        var settings = Settings.findOne();
+        if (settings == null)
+            return "";
+        var oldDate = new Date(settings.roundEnds);
         var newDate = oldDate.getDate() + 14;
         return newDate;
     },
