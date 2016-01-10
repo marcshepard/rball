@@ -39,8 +39,8 @@
 <!-- Home page, with context-specific text -->
 <template name="home">
     <div class="container">
-        <p>Welcome to the <a href="/about">MSFT racquetball ladder</a>! <b>The current round ends {{roundEnds}}.</b> {{roundMsg}}
-        Please schedule your games now to avoid no-play penalties (or worse).</p>
+        <p>Welcome to the <a href="/about">MSFT racquetball ladder</a>! <b>The current round ends {{roundEnds}}.</b> 
+        Please schedule your games now to avoid no-play penalties (or worse). {{roundMsg}}</p>
 {{#if currentUser}}
     {{#if activeUser}}
         {{> enterResults}}
@@ -58,21 +58,21 @@
 <template name="enterResults">
     <div>
         <p><b>Report results</b></p>
-        <p>Once you have submitted results for both required matches, you will have the option to submit a bonus match against other active players who have finished their required matches.</p>    
+        <p>Once you have submitted results for both required matches, you will have the option to play and submit results for a bonus match against
+            any other active player who has also finisheded their required matches.
+        </p>    
         <table class="form_table">
 {{#if above}}
             <tr>
                 <td class="form_table_data" align="right">Above vs {{above}}: &nbsp;</td>
                 <td class="form_table_data"><select id="above_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
             </tr>
-
 {{/if}}
 {{#if below}}
             <tr>
                 <td class="form_table_data" align="right" >Below vs {{below}}: &nbsp;</td>
-                <td class="form_table_data"><select class="b" id="below_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
+                <td class="form_table_data"><select id="below_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
             </tr>
-            
 {{/if}}
             <tr>
                 <td class="form_table_data" align="right" >Bonus vs
@@ -84,19 +84,12 @@
                 <td class="form_table_data"><select id="bonus_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
             </tr>
             <tr>
-                <td class="form_table_data"><button type="submit" id="submit_results" onmouseout="clearResultsStatus()">Report</button></td>
+                <td class="form_table_data"><button type="submit" id="submit_results">Report</button></td>
                 <td class="form_table_data"><span id="submit_results_status"></span></td>
             </tr>
         </table>
         <br/>
     </div>
-    <script>
-        document.getElementById("above_result").selectedIndex = {{aboveIx}};
-        document.getElementById("below_result").selectedIndex = {{belowIx}};
-        document.getElementById("bonus_result").selectedIndex = {{bonusIx}};
-        document.getElementById("bonus_user").selectedIndex = {{bonusUserIx}};
-        function clearResultsStatus() {document.getElementById("submit_results_status").innerHTML = ""};
-    </script>
 </template>
 
 <!-- activePlayers list appears on home page for any logged in users -->
@@ -177,6 +170,14 @@
         <p>If you have any questions or issues, please let send us an <a href="mailto:msladder@microsoft.com">email</a>.</p>
         <p>For scheduling matches, you can call the pro club or use their new <a href="http://proclub.com/Home/AthleticsFitness/Racquetball/tabid/305/Default.aspx">racquetball web site</a>.</p>
         <p>Also, for your reference, here is a link to the <a href="http://www.teamusa.org/~/media/USA_Racquetball/Documents/Rules/USARRulebookSeptember102013.pdf">US Racquetball Association</a>.</p>
+        <h1>This website</h1>
+        <p>
+            This is a new custom website for the MS racquetball ladder. It was built using <a href="https://www.meteor.com/">Meteor</a>,
+            and the source code is available on <a href="http://www.github.com/marcshepard/rball">github</a> for those who want to
+            contribute. MSFT identity login is not yet supported (no Meteor packages for this yet), but perhaps we'll build something
+            in the future. If you have any feedback or suggestions, please send us <a href="mailto:msladder@microsoft.com">email</a>.
+        </p>
+        
     </div>
 </template>
 
@@ -184,11 +185,44 @@
 <template name="settings">
     <div class="container">
 {{#if currentUser}}
-        <p><b>User settings</b></p> 
+    {{#if newUser}}
+        {{> newUserSettings}}
+    {{else}}
+        {{> userSettings}}
+    {{/if}}
+    {{#if admin}}
+        {{> adminSettings}}
+    {{/if}}
+{{else}}
+        <p>You must sign in to configure your settings</p>
+{{/if}}
+    </div>
+</template>
+
+<template name="newUserSettings">
+    <div class="container">
+        <p><b>New Users</b></p>
+        <p>
+        Welcome to the MSFT ladder. As a new user, please reach out to a couple of active players to schedule some practice matches to help
+        determine the right place to start out. Once you are done, send email to <a href="mailto:msladder@microsoft.com">msladder</a>
+        with the results so we know where to place you the next round (yes, it's on to TODO list to let you submit the results in a
+        form instead of email, but it's email for now). New players will not be activated until they have played
+        some placement matches. If you are an old-timer using the web site for the first time, then 
+        skip the practice matches and just shoot us an email so we can get you in the database.
+        </p>
+        <p>After you are activated for the first time, this page will let you toggle your rest/active states in the future.</p>
+    </div>
+</template>
+
+<!-- User Settings - top part of settings page -->
+<template name="userSettings">
+    <div class="container">
+        <p><b>User settings</b></p>
+        <p>Status for current round: {{activeStatus}}</p>
         <table class="form_table">
             <tr>
-                <td class="form_table_data" align="right">Active: &nbsp;</td>
-                <td class="form_table_data"><select id="new_active"><option>Yes</option><option>No</option></select></td>
+                <td class="form_table_data" align="right">Next: &nbsp;</td>
+                <td class="form_table_data"><select id="new_active"><option>Active</option><option>Rest</option></select></td>
             </tr>
             <tr>
                 <td class="form_table_data" align="right">Name: &nbsp;</td>
@@ -196,27 +230,28 @@
             </tr>
             <tr>
                 <td class="form_table_data" align="right">Email: &nbsp;</td>
-                <td class="form_table_data"><textarea disabled="disabled" id="new_email" maxlength="30" cols="30" rows="1">{{email}}</textarea></td>
+                <td class="form_table_data"><textarea id="new_email" maxlength="30" cols="30" rows="1">{{email}}</textarea></td>
             </tr>
             <tr>
-                <td class="form_table_data"><button type="submit" id="submit_settings" onmouseout="clearStatus('submit_settings_status')">Update</button></td>
+                <td class="form_table_data"><button type="submit" id="submit_settings">Update</button></td>
                 <td class="form_table_data"><span id="submit_settings_status"></span></td>
             </tr>
         </table>
         <br/>
-{{#if admin}}
-        <p><b>(Admin) Current round settings</b></p>
-        <table class="form_table">
-            <tr>
-                <td class="form_table_data"><button type="submit" id="nag_round" onmouseout="clearStatus('nag_round_status')">Send nag email</button></td>
-                <td class="form_table_data"><span id="nag_round_status"></span></td>
-            </tr>
-        </table>
+    </div>
+</template>
+
+
+<!-- Admin Settings - bottom part of settings page if user is an admin -->
+<template name="adminSettings">
+    <div class="container">
+        <p><b>(Admin) Current round</b></p>
+        <p> {{roundStats}}<a href={{nagMailLink}} class="btn" role="button">Send email...</a></p>
         <br />
         <table class="form_table">
             <tr>
                 <td class="form_table_data" align="right">Ends: &nbsp;</td>
-                <td class="form_table_data"><input type="date" id="round_ends" defaultValue="{{roundEnds}}"/></td>
+                <td class="form_table_data"><input type="text" class="form-control" id="round_ends" value="{{roundEnds}}"></td>
             </tr>
             <tr>
                 <td class="form_table_data" align="right">Message: &nbsp;</td>
@@ -233,7 +268,7 @@
         <table class="form_table">
             <tr>
                 <td class="form_table_data" align="right">Ends: &nbsp;</td>
-                <td class="form_table_data"><input type="date" id="new_round_ends" defaultValue="{{newRoundEnds}}" /></td>
+                <td class="form_table_data"><input type="text" id="new_round_ends" value="{{newRoundEnds}}" /></td>
             </tr>
             <tr>
                 <td class="form_table_data" align="right">Message: &nbsp;</td>
@@ -256,26 +291,17 @@
                 </tr>
             </thead>
             <tbody>
-    {{#each players}}
+{{#each players}}
                 <tr>
                     <td>{{username}}</td>
                     <td><input type="checkbox" checked/></td>
                     <td><input type="checkbox" /></td>
                     <td><button type="submit" disabled>Update</button></td>
                 </tr>
-    {{/each}}
+{{/each}}
             </tbody>
         </table>
         <br/>
-{{/if}}
-{{else}}
-        <p>You must sign in to configure your settings</p>
-{{/if}}
     </div>
-{{#if currentUser}}
-    <script>
-        document.getElementById("new_active").selectedIndex = {{activeNextRoundIx}};
-        function clearStatus(tag) {document.getElementById(tag).innerHTML = ""};
-    </script>
-{{/if}}
 </template>
+

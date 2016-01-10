@@ -106,8 +106,8 @@ function oppositeResult (str) {
 
 // Function used in the enterResults helper - see if a player has played required matches (so eligable for a bonus match)
 function playedRequiredMatches(user) {
-    if ((user.profile.aboveResult != null) && (user.profile.belowResult != null) &&
-            (user.profile.aboveResult != "") && (user.profile.belowResult != ""))
+    if ((user.aboveResult != null) && (user.belowResult != null) &&
+            (user.aboveResult != "") && (user.belowResult != ""))
         return true;
     return false;
 }
@@ -126,26 +126,19 @@ Template.enterResults.helpers({
             return "";
         return user.username;
     },
-    aboveIx:function(){
-        if (Meteor.user().profile.aboveResult == null)
-            return 0;
-        return resultStringToSelectorIx (Meteor.user().profile.aboveResult);
+    aboveResult:function(){
+        var val = Meteor.user().aboveResult;
+        return val;
     },
-    belowIx:function(){
-        if (Meteor.user().profile.belowResult == null)
-            return 0;
-        return resultStringToSelectorIx (Meteor.user().profile.belowResult);
-    },
-    bonusIx:function(){
-        if (Meteor.user().profile.bonusResult == null)
-            return 0;
-        return resultStringToSelectorIx (Meteor.user().profile.bonusResult);
+    belowResult:function(){
+        var val = Meteor.user().belowResult;
+        return val;
     },
     bonusUsers:function() {
          var user = Meteor.user();
 
-         if (user.profile.bonusUser != null) {
-            var u = Meteor.users.findOne ({_id:user.profile.bonusUser});
+         if (user.bonusUser != null) {
+            var u = Meteor.users.findOne ({_id:user.bonusUser});
             if (u != null) {
                 return [{username:u.username}];
             }
@@ -153,7 +146,7 @@ Template.enterResults.helpers({
 
         if (playedRequiredMatches(user)) {
             var bonusUsers = [];
-            var activeUsers = Meteor.users.find ({_id:{$ne:user._id}, active:1}).fetch();
+            var activeUsers = Meteor.users.find ({_id:{$ne:user._id}, active:1}, {sort: {username: 1}}).fetch();
             for (var ix = 0; ix < activeUsers.length; ix++) {
                 if (playedRequiredMatches(activeUsers[ix]))
                     bonusUsers = bonusUsers.concat(activeUsers[ix]);
@@ -165,85 +158,128 @@ Template.enterResults.helpers({
 
         return [{username:"Not available"}];
     },
-    bonusUserIx:function() {
-        return 0;
+    clearStatusResults:function() {
+        document.getElementById("submit_results_status").innerHTML = "";
     }
 });
 
-
+Template.enterResults.onRendered(function(){
+    this.autorun (function () {
+        document.getElementById("above_result").selectedIndex = resultStringToSelectorIx (Meteor.user().aboveResult);
+        document.getElementById("below_result").selectedIndex = resultStringToSelectorIx (Meteor.user().belowResult);
+        document.getElementById("bonus_result").selectedIndex = resultStringToSelectorIx (Meteor.user().bonusResult);
+    });
+});
 
 // Event handler for enterResults template - updates this user and the user they played (with opposite results)
 Template.enterResults.events({
+    'mouseleave #submit_results': function(event){
+        document.getElementById("submit_results_status").innerHTML = "";
+    },            
     'click #submit_results': function(event){
-        var resultStatus = "";
-        var user = Meteor.user();
-        
         var above = document.getElementById("above_result");
-        var aboveResult = above.options[above.selectedIndex].text;
-        if (user.profile.aboveResult != aboveResult) {
-            resultStatus += "Above changed to " + aboveResult + ". ";
-            Meteor.users.update ({_id:user._id}, {$set: {"profile.aboveResult": aboveResult}});
-            Meteor.users.update ({_id:user.aboveUser}, {$set: {"profile.belowResult": oppositeResult(aboveResult)}});
-            Meteor.call ("sendResults", user.aboveUser, aboveResult);
-        }
-        
+        var aboveResult = above.options[above.selectedIndex].text;        
         var below = document.getElementById("below_result");
         var belowResult = below.options[below.selectedIndex].text;
-        if (user.profile.belowResult != belowResult) {
-            resultStatus += "Below changed to " + belowResult + ". ";
-            Meteor.users.update ({_id:user._id}, {$set: {"profile.belowResult": belowResult}});
-            Meteor.users.update ({_id:user.belowUser}, {$set: {"profile.aboveResult": oppositeResult(belowResult)}});
-            Meteor.call ("sendResults", user.belowUser, belowResult);
-        }
-
         var bonusUserSelector = document.getElementById("bonus_user");
         var bonusUserName = bonusUserSelector.options[bonusUserSelector.selectedIndex].text;
-        var bonusUser = Meteor.users.findOne ({username:bonusUserName});
         var bonusResultSelector = document.getElementById("bonus_result");
         var bonusResult = bonusResultSelector.options[bonusResultSelector.selectedIndex].text;
-        if ((bonusUser != null) && (user.profile.bonusResult != bonusResult)) {
-            resultStatus += "Bonus against " + bonusUserName + " changed to " + bonusResult + ".";
-            var bonusUserId = bonusUser._id;
-            Meteor.users.update ({_id:user._id}, {$set: {"profile.bonusUser": bonusUserId}});
-            Meteor.users.update ({_id:user._id}, {$set: {"profile.bonusResult": bonusResult}});
-            Meteor.users.update ({_id:bonusUserId}, {$set: {"profile.bonusUser": user._id}});
-            Meteor.users.update ({_id:bonusUserId}, {$set: {"profile.bonusResult": oppositeResult(bonusResult)}});
-            Meteor.call ("sendResults", user.bonusUserId, bonusResult);
-        }
-
-        if (resultStatus.length <= 1)
-            resultStatus = "Nothing changed"
-
-        document.getElementById("submit_results_status").innerHTML = resultStatus;
+        Meteor.call ("reportResults", aboveResult, belowResult, bonusUserName, bonusResult, function (error, result) {
+            if (error == null) {
+                document.getElementById("submit_results_status").innerHTML = result;
+            } else {
+                document.getElementById("submit_results_status").innerHTML = error.message;
+            }
+        });
     }
 });
 
 // Helper functions (providing {{var}} support) for settings template
 Template.settings.helpers({
-    activeNextRoundIx: function () {
-        try {
-            var ix = (1 - (Meteor.user().profile.activeNextRound == "1"));
-            return ix;
-        }
-        catch (e) {
-            console.log("activeNextRoundIx exception = " + e.message);
-        }
-        return 1;
+    newUser:function() {
+        return (Meteor.user().approved != 1);
     },
+    admin:function(){
+        return Meteor.user().admin;
+    }
+});
+
+// Helper functions for user settings
+Template.userSettings.helpers({
     name:function(){
         return Meteor.user().username;
     },
     email:function(){
         return Meteor.user().emails[0].address;
     },
-    admin:function(){
-        return Meteor.user().admin;
+    activeStatus:function() {
+        return (Meteor.user().active == 1 ? "Active" : "Rest");
+    }
+});
+
+// Event handler for settings template - updates settings
+Template.userSettings.events({
+    'click #submit_settings': function(event){
+        var newUserName = document.getElementById("new_username").value;
+        var newEmail = document.getElementById("new_email").value;
+        var newActive = 1 - document.getElementById("new_active").selectedIndex;
+        
+        Meteor.call ("updateUserSettings", newActive, newUserName, newEmail, null, function (error, result) {
+            if (error == null) {
+                document.getElementById("submit_settings_status").innerHTML = result;
+            } else {
+                document.getElementById("submit_settings_status").innerHTML = error.message + ". Refresh the browser to update the UI with the current round settings.";
+            }
+        });
+    },
+    'mouseleave #submit_settings': function(event){
+        document.getElementById("submit_settings_status").innerHTML = "";
+    },    
+});
+
+Template.userSettings.onRendered(function(){
+    this.autorun (function () {
+        var ix = 1;
+        if (Meteor.user().approved == 1) {
+            try {
+                ix = 1 - (Meteor.user().profile.activeNextRound == "1");
+            } catch (e) {}
+            document.getElementById("new_active").selectedIndex = ix;
+        }
+    });
+});
+
+// Helper functions (providing {{var}} support) for settings template
+Template.adminSettings.helpers({
+    roundStats: function () {
+        var pMatches = Meteor.users.find({active:1, aboveResult :{$ne:""}}).count();
+        var nMatches = Meteor.users.find({}).count() - 1;
+        return pMatches + " of " + nMatches + " matches played (" + parseInt((pMatches * 100)/nMatches) + "%)"; 
+    },
+    nagMailLink: function() {
+        var pMatches = Meteor.users.find({active:1, aboveResult :{$ne:""}}).count();
+        var nMatches = Meteor.users.find({}).count() - 1;
+        var roundStats = pMatches + " of " + nMatches + " matches played (" + parseInt((pMatches * 100)/nMatches) + "%)"; 
+        var roundEnds = Settings.findOne({}).roundEnds.toDateString();
+        var users = Meteor.users.find({active:1}).fetch();
+        var to = "";
+        for (var ix=0; ix<users.length; ix++) {
+            to += (users[ix].emails[0].address + ";")
+        }
+        to += "msladder@microsft.com";
+        var subject = "MS racquetball ladder reminder";
+        var body = "The current round ends on " + roundEnds + ". So far there have been " +
+            roundStats + ". As a courtesy to other players and to avoid the no-play penalty, please " +
+            "make sure to play your matches and send the results at http://rball.meteor.com " +
+            "before the round ends."
+        return "mailto:"+escape(to)+"?subject="+subject+"&body="+escape(body);
     },
     roundEnds: function () {
         var settings = Settings.findOne();
         if (settings == null)
             return "";
-        return settings.roundEnds;
+        return settings.roundEnds.toDateString();
     },
     roundMsg: function () {
         var settings = Settings.findOne();
@@ -255,9 +291,9 @@ Template.settings.helpers({
         var settings = Settings.findOne();
         if (settings == null)
             return "";
-        var oldDate = new Date(settings.roundEnds);
-        var newDate = oldDate.getDate() + 14;
-        return newDate;
+        var newDate = new Date(settings.roundEnds);
+        newDate.setDate (newDate.getDate() + 14);
+        return newDate.toDateString();
     },
     players: function () {
         var p = Meteor.users.find({}, {sort: {username: 1}, fields: {username: 1, approved: 1}}).fetch();
@@ -266,43 +302,20 @@ Template.settings.helpers({
 });
 
 // Event handler for settings template - updates settings
-Template.settings.events({
-    'click #submit_settings': function(event){
-        var settingsStatus = "";
-        var user = Meteor.user();
-        var userId = user._id;
-        
-        var newUserName = document.getElementById("new_username").value;
-        if ((newUserName != user.username) && (newUserName.length > 2)) {
-            settingsStatus += "New user name " + newUserName + ". ";
-            Meteor.users.update({_id: userId}, {$set: {"username":newUserName}})
-        }
-
-        var newEmail = document.getElementById("new_email").value;
-        if ((newEmail != user.emails[0].address) && (newEmail.length > 10)) {
-            settingsStatus += "New email address " + newEmail + ". ";
-            Meteor.users.update({_id: userId}, {$set: {"emails[0].address": newEmail}})
-        }
-
-        var newActive = 1 - document.getElementById("new_active").selectedIndex;
-        if (newActive != user.profile.activeNextRound) {
-            settingsStatus += "New active " + newActive;
-            Meteor.users.update({_id: userId}, {$set: {"profile.activeNextRound": newActive}})
-        }
-
-        if (settingsStatus.length <= 1) {
-            settingsStatus = "Nothing changed";
-        }
-
-        document.getElementById("submit_settings_status").innerHTML = settingsStatus;
-    },
-    'click #submit_round': function (event) {
-        document.getElementById("submit_round_status").innerHTML = "Not implemented";
+Template.adminSettings.events({
+    'click #submit_round': function (event, template) {
+        // document.getElementById("submit_round_status").innerHTML = "Not implemented";
+        roundEnds = document.getElementById("round_ends").value;
+        roundMsg = document.getElementById("round_msg").value;
+        Meteor.call ("updateRoundSettings", roundEnds, roundMsg, function (error, result) {
+            if (error == null) {
+                document.getElementById("submit_round_status").innerHTML = result;
+            } else {
+                document.getElementById("submit_round_status").innerHTML = error.message + ". Refresh the browser to update the UI with the current round settings.";
+            }
+        });
     },
     'click #submit_newround': function (event) {
         document.getElementById("submit_newround_status").innerHTML = "Not implemented";
-    },
-    'click #nag_round': function (event) {
-        document.getElementById("nag_round_status").innerHTML = "Not implemented";
     }
 });

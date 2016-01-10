@@ -24,7 +24,7 @@ function populateDB () {
     Settings.remove({});
     Settings.insert({
         roundEnds:new Date("Jan 18, 2016"),
-        roundMsg:""
+        roundMsg:"First admin message."
     });
     console.log("Settings.roundEnds = " + Settings.findOne({}).roundEnds);
     console.log("Settings.roundMsg = " + Settings.findOne({}).roundMsg);
@@ -94,9 +94,9 @@ function populateDB () {
                 "admin": attribs[admin],
                 "rank": parseInt(attribs[rank]),
                 "points": attribs[points],
-                "profile.aboveResult": "",
-                "profile.belowResult": "",
-                "profile.bonusResult": "",
+                "aboveResult": "",
+                "belowResult": "",
+                "bonusResult": "",
                 "prevRank": attribs[lastrank],
                 "prevAboveUserName": attribs[lastabove].replace(/^[^(]*\(/, "").replace(/\)/, ""),
                 "prevBelowUserName": attribs[lastbelow].replace(/^[^(]*\(/, "").replace(/\)/, ""),
@@ -131,26 +131,198 @@ function populateDB () {
     console.log("There are " + Meteor.users.find().count() + " users");
 }
 
-Meteor.methods({
-    // Send a match results email notification
-    sendResults:function (opponentId, result) {
-        console.log ("sendResults");
-        
-        // Let other method calls from the same client start running without waiting for the email sending to complete.
-        this.unblock();
+function emailResults (opponent, result) {
+    // Let other method calls from the same client start running without waiting for the email sending to complete.
+    //this.unblock();
     
-        var user = Meteor.users.findOne({_id:this.userId});
-        var opponent = Meteor.users.findOne({_id:opponentId});
-        var toAddr =  user.emails[0].address + ";" + opponent.emails[0].address;
-        var summary = user.username + " reported a " + result + " against " + opponent.username;
+    var user = Meteor.user();
+    var toAddr =  user.emails[0].address + ";" + opponent.emails[0].address;
+    var summary = user.username + " reported a " + result + " against " + opponent.username;
+    
+    Email.send({
+        to: toAddr,
+        from: "msladder@microsoft.com",
+        subject: "MS rball: " + summary,
+        bcc: "msladder@microsoft.com",
+        text: "This is an auto-generated email from the MS racquetball ladder web site (http://rball.meteor.com) based on results submitted by " + user.username
+    });
+}
+
+// Function used in the enterResults helper - when entering a result for playerA, enter opposite result for player B
+function oppositeResult (str) {
+    switch (str) {
+        case null:
+        case "":
+            return "";
+        case "W":
+            return "L";
+        case "L":
+            return "W";
+        case "WF":
+            return "LF";
+        case "LF":
+            return "WF";
+        case "T":
+            return "T";
+    }
+}
+
+// Function used in the enterResults helper - see if a player has played required matches (so eligable for a bonus match)
+function playedRequiredMatches(user) {
+    if ((user.aboveResult != null) && (user.belowResult != null) &&
+            (user.aboveResult != "") && (user.belowResult != ""))
+        return true;
+    return false;
+}
+
+Meteor.methods({
+    // TODO - remove this. It's a command-line script to nuke the DB and start over with migrated data
+    populateDB:function () {
+        if (Meteor.user().admin)
+            populateDB();
+    },
+    
+    // Allow users to update their settings; active/rest next round, username, email, and (for new users) where they should land
+    updateUserSettings:function (activeNextRound, name, email, message) {
+        resultStatus = "";
+        detailedResults = "";
         
-        Email.send({
-            to: toAddr,
-            from: "msladder@microsoft.com",
-            subject: "MS rball: " + summary,
-            bcc: "msladder@microsoft.com",
-            text: "This is an auto-generated email that " + summary + "."
-        });
+        user = Meteor.user();
+        if ((user == null) || (this.userId == null)) {
+            console.warn ("updateSettings called by anonymous user");
+            throw new Meteor.Error ("You must be logged in to update your settings", "Invalid user");
+        }
+        
+        if (name != user.username) {
+            try {
+                var oldName = user.username;
+                Accounts.setUsername (user._id, name);
+                console.log (oldName + " changed their username to " + name);
+            } catch (e) {
+                console.warn (user.username + " failed to change their username to " + name + ": " + e.message);
+                throw new Meteor.Error ("Invalid user name (they must be unique)", "Invalid user");
+            }
+            resultStatus += "Name updated. ";
+        }
+        
+        if (email != user.emails[0].address) {
+            try {
+                oldEmail = user.emails[0].address;
+                Accounts.addEmail (user._id, email);
+                Accounts.removeEmail (user._id, oldEmail);
+                console.log (user.username + " changed email address from " + oldEmail + " to " + email);
+            } catch (e) {
+                console.warn (user.username + " failed to change their email address to " + email + ": " + e.message);
+                throw new Meteor.Error ("Invalid email (they must be unique)", "Invalid user");
+            }
+            resultStatus += "Email address updated. ";
+        }
+        
+        if (activeNextRound != user.profile.activeNextRound) {
+            Meteor.users.update ({_id:user._id}, {$set: {"profile.activeNextRound":activeNextRound}});
+            resultStatus += "Next rounds active/rest state changed. ";
+            console.log ("Updating activeNextRound. result = " + resultStatus)
+        }
+        
+        if ((message != null) && (user.profile.initialRankingMessage != message)) {
+            Meteor.users.update ({_id:user._id}, {$set: {"profile.initialRankingMessage":message}});
+            resultStatus += "Initial ranking message updated. ";
+        }
+        
+        if (resultStatus.length <= 1)
+            resultStatus = "Nothing changed";
+        
+        return resultStatus;
+    },
+    
+    // Admins can update the current round settings (end date and round message).
+    updateRoundSettings:function (roundEndDate, roundMsg) {
+        user = Meteor.user();
+        if ((user == null) || (this.userId == null)) {
+            console.warn ("updateSettings called by anonymous user");
+            return;
+        }
+        if (user.admin != 1) {
+            console.warn ("updateSettings called by non-admin user " + user.username);
+            return;
+        }
+            
+        var roundEnds = new Date(roundEndDate);
+        var threeWeeksFromNow = new Date();
+        threeWeeksFromNow.setDate(threeWeeksFromNow.getDate() + 14);
+        var now = new Date();
+        if (roundEnds < now) {
+            throw new Meteor.Error("Can't be in the past", "Invalid End Date");
+        }
+        if (roundEnds > threeWeeksFromNow) {
+            throw new Meteor.Error("Can't be > 3 weeks from today", "Invalid End Date");
+        }
+        Settings.update ({}, {$set: {roundMsg:roundMsg, roundEnds:roundEnds}});
+        return ("Settings updated succesfully");
+    },
+    
+    reportResults:function (aboveResult, belowResult, bonusUserName, bonusResult) {
+        var resultStatus = "";
+        var user = Meteor.user();
+        
+        console.log (user.userName + " calling reportResults with aboveResults = " + aboveResult + ", belowResult = " + belowResult + ", bonusResult = " + bonusResult + ", bonusUser = " + bonusUser);
+        if (user.aboveResult != aboveResult) {
+            console.log ("above results changes - validing user...");
+            var opponent = Meteor.users.findOne({_id:user.aboveUser});
+            if ((opponent == null) || (opponent.belowUser != user._id)) {
+                console.warn ("Throwing wrong user...");
+                throw new Meteor.Error("Wrong above user", "Invalid results");
+            }
+            resultStatus += "Above changed to " + aboveResult + ". ";
+            Meteor.users.update ({_id:user._id}, {$set: {"aboveResult": aboveResult}});
+            Meteor.users.update ({_id:user.aboveUser}, {$set: {"belowResult": oppositeResult(aboveResult)}});
+            emailResults (opponent, aboveResult);
+        }
+        
+        if (user.belowResult != belowResult) {
+            var opponent = Meteor.users.findOne({_id:user.belowUser});
+            if ((opponent == null) || (opponent.aboveUser != user._id)) {
+                console.warn ("Wrong below user...");
+                throw new Meteor.Error("Wrong below user", "Invalid results");
+            }
+            resultStatus += "Below changed to " + belowResult + ". ";
+            Meteor.users.update ({_id:user._id}, {$set: {"belowResult": belowResult}});
+            Meteor.users.update ({_id:user.belowUser}, {$set: {"aboveResult": oppositeResult(belowResult)}});
+            emailResults (opponent, belowResult);
+        }
+
+        var bonusUser = Meteor.users.findOne ({username:bonusUserName});
+        if ((bonusUser != null) && (user.bonusResult != bonusResult)) {
+            var bonusUserId = bonusUser._id;
+            if ((user.bonusUser == null) && (!playedRequiredMatches(user))) {
+                console.warn ("Reporting bonus without playing required matches...");
+                throw new Meteor.Error("Can't score a bonus match until you have played your required matches", "Invalid results");                
+            }
+            if ((bonusUser.bonusUser == null) && !(playedRequiredMatches(user))) {
+                console.warn ("Reporting bonus against player who has already had a bonus match...");
+                throw new Meteor.Error("Can't score a bonus match until your opponent has played their required matches", "Invalid results");                
+            }
+            if ((user.bonusUser != null) && (user.bonusUser.length > 1) && (bonusUserId != user.bonusUser)) {
+                console.warn ("Attempting to report a 2nd bonus match oppontent...");
+                throw new Meteor.Error("You can only report one bonus opponent per round", "Invalid results");
+            }
+            if ((bonusUser.bonusUser != null) && (bonusUser.bonusUser != user._id)) {
+                console.warn ("Attempting to report a bonus match against an oppontent who has already played their bonus match...");
+                throw new Meteor.Error("Your opponent has already scored a bonus match against someone else", "Invalid results");
+            }
+            
+            resultStatus += "Bonus against " + bonusUserName + " changed to " + bonusResult + ".";
+            Meteor.users.update ({_id:user._id}, {$set: {"bonusUser": bonusUserId}});
+            Meteor.users.update ({_id:user._id}, {$set: {"bonusResult": bonusResult}});
+            Meteor.users.update ({_id:bonusUserId}, {$set: {"bonusUser": user._id}});
+            Meteor.users.update ({_id:bonusUserId}, {$set: {"bonusResult": oppositeResult(bonusResult)}});
+            emailResults (bonusUser, bonusResult);
+        }
+
+        if (resultStatus.length <= 1)
+            resultStatus = "Nothing changed"
+
+        return resultStatus;
     }
 })
 
