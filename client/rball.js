@@ -59,9 +59,6 @@ Template.home.helpers({
 Template.activePlayers.helpers({
     players:function(){
         var p = Meteor.users.find({active:1},{sort: {rank: 1}}).fetch();
-        for (var ix = 0; ix < p.length; ix++) {
-            p[ix].email = p[ix].emails[0].address;
-        }
         return p;
     }
 });
@@ -106,10 +103,11 @@ function oppositeResult (str) {
 
 // Function used in the enterResults helper - see if a player has played required matches (so eligable for a bonus match)
 function playedRequiredMatches(user) {
-    if ((user.aboveResult != null) && (user.belowResult != null) &&
-            (user.aboveResult != "") && (user.belowResult != ""))
-        return true;
-    return false;
+    if ((user.aboveUser != null) && (user.aboveResult == ""))
+        return false;
+    if ((user.belowUser != null) && (user.belowResult == ""))
+        return false;
+    return true;;
 }
 
 // Helper functions (providing {{var}} support) for enterResults template
@@ -118,13 +116,13 @@ Template.enterResults.helpers({
         var user = Meteor.users.findOne ({_id:Meteor.user().aboveUser});
         if (user == null)
             return "";
-        return user.username;
+        return user.profile.name;
     },
     below:function(){
         var user = Meteor.users.findOne ({_id:Meteor.user().belowUser});
         if (user == null)
             return "";
-        return user.username;
+        return user.profile.name;
     },
     aboveResult:function(){
         var val = Meteor.user().aboveResult;
@@ -137,26 +135,29 @@ Template.enterResults.helpers({
     bonusUsers:function() {
          var user = Meteor.user();
 
-         if (user.bonusUser != null) {
+         if (user.bonusUser != "") {
             var u = Meteor.users.findOne ({_id:user.bonusUser});
             if (u != null) {
-                return [{username:u.username}];
+                return [{name:u.profile.name}];
             }
+            console.warn ("Error: user " + user.profile.name + " has a bonusUser " + user.bonusUser + " but they don't have one.")
+            return [{name:"Not available"}];
         }
 
         if (playedRequiredMatches(user)) {
             var bonusUsers = [];
-            var activeUsers = Meteor.users.find ({_id:{$ne:user._id}, active:1}, {sort: {username: 1}}).fetch();
+            var activeUsers = Meteor.users.find ({_id:{$ne:user._id}, active:1}, {sort: {"profile.name": 1}}).fetch();
             for (var ix = 0; ix < activeUsers.length; ix++) {
-                if (playedRequiredMatches(activeUsers[ix]))
-                    bonusUsers = bonusUsers.concat(activeUsers[ix]);
+                if (playedRequiredMatches(activeUsers[ix]) && (activeUsers[ix].bonusUser == "")) {
+                    bonusUsers = bonusUsers.concat([{name:activeUsers[ix].profile.name}]);
+                }
             }
             if (bonusUsers.length > 0) {
-                return [{username:""}].concat(bonusUsers);
+                return [{name:""}].concat(bonusUsers);
             }
         }
 
-        return [{username:"Not available"}];
+        return [{name:"Not available"}];
     },
     clearStatusResults:function() {
         document.getElementById("submit_results_status").innerHTML = "";
@@ -165,8 +166,10 @@ Template.enterResults.helpers({
 
 Template.enterResults.onRendered(function(){
     this.autorun (function () {
-        document.getElementById("above_result").selectedIndex = resultStringToSelectorIx (Meteor.user().aboveResult);
-        document.getElementById("below_result").selectedIndex = resultStringToSelectorIx (Meteor.user().belowResult);
+        if (document.getElementById("above_result") != null)
+            document.getElementById("above_result").selectedIndex = resultStringToSelectorIx (Meteor.user().aboveResult);
+        if (document.getElementById("below_result") != null)
+            document.getElementById("below_result").selectedIndex = resultStringToSelectorIx (Meteor.user().belowResult);
         document.getElementById("bonus_result").selectedIndex = resultStringToSelectorIx (Meteor.user().bonusResult);
     });
 });
@@ -178,13 +181,20 @@ Template.enterResults.events({
     },            
     'click #submit_results': function(event){
         var above = document.getElementById("above_result");
-        var aboveResult = above.options[above.selectedIndex].text;        
+        var aboveResult = "";
+        if (above != null)
+            aboveResult = above.options[above.selectedIndex].text;
+        
         var below = document.getElementById("below_result");
-        var belowResult = below.options[below.selectedIndex].text;
+        var belowResult = "";
+        if (below != null)
+            belowResult = below.options[below.selectedIndex].text;
+        
         var bonusUserSelector = document.getElementById("bonus_user");
         var bonusUserName = bonusUserSelector.options[bonusUserSelector.selectedIndex].text;
         var bonusResultSelector = document.getElementById("bonus_result");
         var bonusResult = bonusResultSelector.options[bonusResultSelector.selectedIndex].text;
+        
         Meteor.call ("reportResults", aboveResult, belowResult, bonusUserName, bonusResult, function (error, result) {
             if (error == null) {
                 document.getElementById("submit_results_status").innerHTML = result;
@@ -206,12 +216,22 @@ Template.settings.helpers({
 });
 
 // Helper functions for user settings
+Template.newUserSettings.helpers({
+    id:function(){
+        if (Meteor.user == null) {
+            return "???";
+        }
+        return Meteor.user()._id;
+    },
+});
+
+// Helper functions for user settings
 Template.userSettings.helpers({
     name:function(){
-        return Meteor.user().username;
+        return Meteor.user().profile.name;
     },
     email:function(){
-        return Meteor.user().emails[0].address;
+        return Meteor.user().profile.email;
     },
     activeStatus:function() {
         return (Meteor.user().active == 1 ? "Active" : "Rest");
@@ -221,17 +241,42 @@ Template.userSettings.helpers({
 // Event handler for settings template - updates settings
 Template.userSettings.events({
     'click #submit_settings': function(event){
-        var newUserName = document.getElementById("new_username").value;
-        var newEmail = document.getElementById("new_email").value;
-        var newActive = 1 - document.getElementById("new_active").selectedIndex;
+        var name = document.getElementById("new_username").value;
+        var email = document.getElementById("new_email").value;
+        var active = 1 - document.getElementById("new_active").selectedIndex;
+
+        resultStatus = "";
+        statusTag = document.getElementById("submit_settings_status");
+        errorMsgPostfix = ". Refresh the browser to update the UI with the current round settings.";
         
-        Meteor.call ("updateUserSettings", newActive, newUserName, newEmail, null, function (error, result) {
-            if (error == null) {
-                document.getElementById("submit_settings_status").innerHTML = result;
-            } else {
-                document.getElementById("submit_settings_status").innerHTML = error.message + ". Refresh the browser to update the UI with the current round settings.";
-            }
-        });
+        user = Meteor.user();
+        if (user == null) {
+            console.warn ("updateSettings called by anonymous user");
+            statusTag.innerHTML = "Failed: You must be logged in to update your settings";
+            return;
+        }
+        
+        if (name != user.profile.name) {
+            Meteor.users.update (user._id, {$set:{"profile.name":name}});
+            resultStatus += "name, ";
+        }
+        
+        if (email != user.profile.email) {
+            Meteor.users.update (user._id, {$set:{"profile.email":email}});
+            resultStatus += "email address, ";
+        }
+        
+        if (active != user.profile.activeNextRound) {
+            Meteor.users.update (user._id, {$set: {"profile.activeNextRound":active}});
+            resultStatus += "next round active/rest status";
+        }
+        
+        if (resultStatus.length <= 1) {
+            statusTag.innerHTML = "Nothing changed";
+            return;
+        }
+        
+        statusTag.innerHTML = "Succesfully updated " + resultStatus;
     },
     'mouseleave #submit_settings': function(event){
         document.getElementById("submit_settings_status").innerHTML = "";
@@ -265,7 +310,7 @@ Template.adminSettings.helpers({
         var users = Meteor.users.find({active:1}).fetch();
         var to = "";
         for (var ix=0; ix<users.length; ix++) {
-            to += (users[ix].emails[0].address + ";")
+            to += (users[ix].profile.email + ";")
         }
         to += "msladder@microsft.com";
         var subject = "MS racquetball ladder reminder";
@@ -295,13 +340,26 @@ Template.adminSettings.helpers({
         newDate.setDate (newDate.getDate() + 14);
         return newDate.toDateString();
     },
-    players: function () {
-        var p = Meteor.users.find({}, {sort: {username: 1}, fields: {username: 1, approved: 1}}).fetch();
+    unapprovedPlayers: function () {
+        var uninit = Meteor.users.find({approved:{$eq:null}}, {fields: "_id"}).fetch();
+        if (uninit.length > 0) {
+            Meteor.call ("initializeUsers", uninit, function (error, result) {
+                if (error == null) {
+                    //document.getElementById("submit_round_status").innerHTML = result;
+                    console.log ("Initialize worked:" + result);
+                } else {
+                    //document.getElementById("submit_round_status").innerHTML = error.message + ". Refresh the browser to update the UI with the current round settings.";
+                    console.log ("Initialize failed:" + error.message);
+                }
+            });
+        }
+        
+        var p = Meteor.users.find({approved:{$ne:1}}, {sort: {"profile.name": 1}, fields: {"profile.name":1, "profile.email":1, "_id":1}}).fetch();
         return p;
     }
 });
 
-// Event handler for settings template - updates settings
+// Event handler for admin settings template - updates admin settings
 Template.adminSettings.events({
     'click #submit_round': function (event, template) {
         // document.getElementById("submit_round_status").innerHTML = "Not implemented";
@@ -317,5 +375,11 @@ Template.adminSettings.events({
     },
     'click #submit_newround': function (event) {
         document.getElementById("submit_newround_status").innerHTML = "Not implemented";
+    },
+    'mouseleave #submit_round': function(event){
+        document.getElementById("submit_round_status").innerHTML = "";
+    },
+    'mouseleave #submit_newround': function(event){
+        document.getElementById("submit_newround_status").innerHTML = "";
     }
 });

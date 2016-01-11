@@ -78,7 +78,7 @@
                 <td class="form_table_data" align="right" >Bonus vs
                     <select id="bonus_user">
 {{#each bonusUsers}}
-                        <option>{{username}}</option>
+                        <option>{{name}}</option>
 {{/each}}
                     </select>: &nbsp;</td>
                 <td class="form_table_data"><select id="bonus_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
@@ -113,23 +113,11 @@
                 <tr>
                     <td>{{rank}}</td>
                     <td>{{points}}</td>
-                    <td><a href="mailto:{{email}}">{{username}}</a></td>
+                    <td><a href="mailto:{{profile.email}}">{{profile.name}}</a></td>
                     <td>{{prevRank}}</td>
-                    <td>
-    {{#if prevAboveResult}}
-                        {{prevAboveResult}}({{prevAboveUserName}})
-    {{/if}}
-                    </td>
-                    <td>
-    {{#if prevBelowResult}}
-                        {{prevBelowResult}}({{prevBelowUserName}})
-    {{/if}}
-                    </td>
-                    <td>
-    {{#if prevBonusResult}}
-                        {{prevBonusResult}}({{prevBonusUserName}})
-    {{/if}}
-                    </td>
+                    <td>{{prevAboveResult}}</td>
+                    <td>{{prevBelowResult}}</td>
+                    <td>{{prevBonusResult}}</td>
                 </tr>
 {{/each}}
             </tbody>
@@ -207,17 +195,22 @@
         determine the right place to start out. Once you are done, send email to <a href="mailto:msladder@microsoft.com">msladder</a>
         with the results so we know where to place you the next round (yes, it's on to TODO list to let you submit the results in a
         form instead of email, but it's email for now). New players will not be activated until they have played
-        some placement matches. If you are an old-timer using the web site for the first time, then 
-        skip the practice matches and just shoot us an email so we can get you in the database.
+        some placement matches.
         </p>
-        <p>After you are activated for the first time, this page will let you toggle your rest/active states in the future.</p>
+        <p>
+        If you are an old-timer using the web site for the first time, then skip the practice matches and just shoot us an
+        email so we can get you in the database. If you are alread in the DB via another account (e.g., you just added
+        this account for FB login), then please include the account ID of the account you want to keep in the email; this
+        account has ID={{id}}. Then we can make sure to activate this account with the right rank next round.
+        </p>
+        <p>After this account is activated for the first time, this page will let you toggle your future rest/active states yourself.</p>
     </div>
 </template>
 
 <!-- User Settings - top part of settings page -->
 <template name="userSettings">
     <div class="container">
-        <p><b>User settings</b></p>
+        <p><b>User Profile</b></p>
         <p>Status for current round: {{activeStatus}}</p>
         <table class="form_table">
             <tr>
@@ -237,6 +230,11 @@
                 <td class="form_table_data"><span id="submit_settings_status"></span></td>
             </tr>
         </table>
+        <p>
+            Note: Changing your name or email address affects info displayed and email notifications. It won't affect the
+            name (or email) you specify at login. If you are using FB login, this is controlled by FB. If you are using
+            name/password login, then you'll need to email msladder to change the login name/email (or switch to FB login).
+        </p>
         <br/>
     </div>
 </template>
@@ -258,12 +256,51 @@
                 <td class="form_table_data"><textarea id="round_msg" cols="40" rows="3">{{roundMsg}}</textarea></td>
             </tr>
             <tr>
-                <td class="form_table_data"><button type="submit" id="submit_round" onmouseout="clearStatus('submit_round_status')">Update</button></td>
+                <td class="form_table_data"><button type="submit" id="submit_round">Update</button></td>
                 <td class="form_table_data"><span id="submit_round_status"></span></td>
             </tr>
         </table>
+        <p>
+            TODO: Implement proper datepicker control for round end date. There are good ones in jquery-ui and
+            bootstrap, but I've not been succesful getting them to work within Meteor...
+        </p>
         <br />
 
+<!--
+        <p><b>(Admin) User approval</b></p>
+        <p>
+            These new users are requesting approval to join the ladder. They have been told to email msladder with placement
+            info (if newbies, after playing placement matches), so we should only approve them after we have agreed on
+            where they will rank. Once approved, they can control their own rest/active status going forward. They can
+            also be deleted if they were created by mistake.
+        </p>
+        <table class="table table-striped table-condensed">
+            <thead>
+                <tr>
+                    <th>Player Name</th>
+                    <th>Email</th>
+                    <th>Id</th>
+                    <th>Approved</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each unapprovedPlayers}}
+                <tr>
+
+                    <td>{{profile.name}}</td>
+                    <td>{{profile.email}}</td>
+                    <td>{{_id}}</td>
+                
+                    <td><button class="approve_user" id="{{_id}}">Approve</button></td>
+                    <td><button class="approve_user" id="{{_id}}">Delete</button></td>
+                </tr>
+{{/each}}
+            </tbody>
+        </table>
+        <br/>
+-->
+        
         <p><b>(Admin) Start new round</b></p>
         <table class="form_table">
             <tr>
@@ -275,33 +312,11 @@
                 <td class="form_table_data"><textarea id="round_msg" cols="40" rows="3">{{newRoundMsg}}</textarea></td>
             </tr>
             <tr>
-                <td class="form_table_data"><button type="submit" id="submit_newround" onmouseout="clearStatus('submit_newround_status')">Generate...</button></td>
+                <td class="form_table_data"><button type="submit" id="submit_newround">Generate...</button></td>
                 <td class="form_table_data"><span id="submit_newround_status"></span></td>
             </tr>
         </table>
         <br />
-
-        <p><b>(Admin) User management</b></p>
-        <table class="table table-striped table-condensed">
-            <thead>
-                <tr>
-                    <th>Player</th>
-                    <th>Approved</th>
-                    <th>Delete</th>
-                </tr>
-            </thead>
-            <tbody>
-{{#each players}}
-                <tr>
-                    <td>{{username}}</td>
-                    <td><input type="checkbox" checked/></td>
-                    <td><input type="checkbox" /></td>
-                    <td><button type="submit" disabled>Update</button></td>
-                </tr>
-{{/each}}
-            </tbody>
-        </table>
-        <br/>
     </div>
 </template>
 
