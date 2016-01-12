@@ -245,7 +245,15 @@ Meteor.methods({
 
     approveUser: function (id) {
         if (Meteor.user().admin) {
-            Meteor.users.update({_id: id}, {$set: {"approved": 1, "profile.activeNextRound":1}});
+            Meteor.users.update({ _id: id }, { $set: { "approved": 1, "profile.activeNextRound": 1 } });
+            user = Meteor.users.findOne({ _id: id });
+            Email.send({
+                to: user.profile.email,
+                from: "msladder@microsoft.com",
+                subject: "You have been approved/activated on the MS rball ladder",
+                bcc: "msladder@microsoft.com",
+                text: "Going forward you can use http://rball.meteor.com to manage your active/rest state, and when the next round starts see your scheduled matches and enter results"
+            });
             return "Done..."
         }
         throw new Meteor.Error("Non-admins can't do this", "Invalid User");
