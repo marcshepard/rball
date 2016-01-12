@@ -84,7 +84,7 @@
                 <td class="form_table_data"><select id="bonus_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
             </tr>
             <tr>
-                <td class="form_table_data"><button type="submit" id="submit_results">Report</button></td>
+                <td class="form_table_data"><button id="submit_results">Report</button></td>
                 <td class="form_table_data"><span id="submit_results_status"></span></td>
             </tr>
         </table>
@@ -226,7 +226,7 @@
                 <td class="form_table_data"><textarea id="new_email" maxlength="30" cols="30" rows="1">{{email}}</textarea></td>
             </tr>
             <tr>
-                <td class="form_table_data"><button type="submit" id="submit_settings">Update</button></td>
+                <td class="form_table_data"><button id="submit_settings">Update</button></td>
                 <td class="form_table_data"><span id="submit_settings_status"></span></td>
             </tr>
         </table>
@@ -256,7 +256,7 @@
                 <td class="form_table_data"><textarea id="round_msg" cols="40" rows="3">{{roundMsg}}</textarea></td>
             </tr>
             <tr>
-                <td class="form_table_data"><button type="submit" id="submit_round">Update</button></td>
+                <td class="form_table_data"><button id="submit_round">Update</button></td>
                 <td class="form_table_data"><span id="submit_round_status"></span></td>
             </tr>
         </table>
@@ -266,13 +266,22 @@
         </p>
         <br />
 
-<!--
         <p><b>(Admin) User approval</b></p>
+        <p>{{numUnapprovedPlayers}} users are waiting for approval</p>
+{{#if numUnapprovedPlayers}}
+  {{#if manageApprovals}}
+        <table class="form_table" id="manageApprovalsButton">
+            <tr>
+                <td class="form_table_data"><button id="hide_approvals">Hide approvals...</button></td>
+            </tr>
+        </table>
         <p>
-            These new users are requesting approval to join the ladder. They have been told to email msladder with placement
-            info (if newbies, after playing placement matches), so we should only approve them after we have agreed on
-            where they will rank. Once approved, they can control their own rest/active status going forward. They can
-            also be deleted if they were created by mistake.
+            The web page tells these new users to email msladder with placement info; if newbies to play placement matches and email msladder
+            with placement info, and if old-timers with new accounts (either first time web site users, or migrating to a new account), to email
+            msladder with that info.(using web site for first time) , or just migrating accounts to FB account) to email
+            msladder with that info. Admins should only approve users after we have agreed on where they will rank next round (and if they are migrating
+            accounts, what account ID to keep and what to migrate from). Once approved, they can control their own rest/active status going forward. Accounts
+            can also be deleted if they were created by mistake.
         </p>
         <table class="table table-striped table-condensed">
             <thead>
@@ -280,39 +289,36 @@
                     <th>Player Name</th>
                     <th>Email</th>
                     <th>Id</th>
-                    <th>Approved</th>
+                    <th>Approve</th>
                     <th>Delete</th>
                 </tr>
             </thead>
             <tbody>
-                {{#each unapprovedPlayers}}
+    {{#each unapprovedPlayers}}
                 <tr>
-
                     <td>{{profile.name}}</td>
                     <td>{{profile.email}}</td>
-                    <td>{{_id}}</td>
-                
-                    <td><button class="approve_user" id="{{_id}}">Approve</button></td>
-                    <td><button class="approve_user" id="{{_id}}">Delete</button></td>
+                    <td>{{playerId}}</td>
+                    <td><button class="approve_user" id="{{playerId}}">Approve</button></td>
+                    <td><button class="delete_user" id="{{playerId}}">Delete</button></td>
                 </tr>
-{{/each}}
+    {{/each}}
             </tbody>
         </table>
+  {{else}}
+        <table class="form_table" id="manageApprovalsButton">
+            <tr>
+                <td class="form_table_data"><button id="manage_approvals">Manage approvals...</button></td>
+            </tr>
+        </table>
+  {{/if}}
+{{/if}}
         <br/>
--->
         
         <p><b>(Admin) Start new round</b></p>
         <table class="form_table">
             <tr>
-                <td class="form_table_data" align="right">Ends: &nbsp;</td>
-                <td class="form_table_data"><input type="text" id="new_round_ends" value="{{newRoundEnds}}" /></td>
-            </tr>
-            <tr>
-                <td class="form_table_data" align="right">Message: &nbsp;</td>
-                <td class="form_table_data"><textarea id="round_msg" cols="40" rows="3">{{newRoundMsg}}</textarea></td>
-            </tr>
-            <tr>
-                <td class="form_table_data"><button type="submit" id="submit_newround">Generate...</button></td>
+                <td class="form_table_data"><button id="submit_newround">Generate...</button></td>
                 <td class="form_table_data"><span id="submit_newround_status"></span></td>
             </tr>
         </table>

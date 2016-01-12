@@ -193,7 +193,7 @@ function emailResults (opponent, result) {
         from: "msladder@microsoft.com",
         subject: "MS rball: " + summary,
         bcc: "msladder@microsoft.com",
-        text: "This is an auto-generated email from the MS racquetball ladder web site (http://rball.meteor.com) based on results submitted by " + user.name
+        text: "This is an auto-generated email from the MS racquetball ladder web site (http://rball.meteor.com) based on results submitted by " + user.profile.name
     });
 }
 
@@ -232,11 +232,28 @@ Meteor.methods({
             populateDB();
     },
     
-    initializeUsers:function (users) {
+    initializeNewUsers:function () {
         if (Meteor.user().admin) {
+            var users = Meteor.users.find({ approved: null}).fetch();
             for (var ix = 0; ix < users.length; ix++) {
                 initializeUser (users[ix]._id, 0);
             }
+            return "Done..."
+        }
+        throw new Meteor.Error("Non-admins can't do this", "Invalid User");
+    },
+
+    approveUser: function (id) {
+        if (Meteor.user().admin) {
+            Meteor.users.update({_id: id}, {$set: {"approved": 1, "profile.activeNextRound":1}});
+            return "Done..."
+        }
+        throw new Meteor.Error("Non-admins can't do this", "Invalid User");
+    },
+
+    deleteUser: function (id) {
+        if (Meteor.user().admin) {
+            Meteor.users.remove({_id: id});
             return "Done..."
         }
         throw new Meteor.Error("Non-admins can't do this", "Invalid User");

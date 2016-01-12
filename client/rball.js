@@ -340,21 +340,18 @@ Template.adminSettings.helpers({
         newDate.setDate (newDate.getDate() + 14);
         return newDate.toDateString();
     },
+    numUnapprovedPlayers: function() {
+        return Meteor.users.find({ approved: { $ne: 1 } }).count();
+    },
+    manageApprovals: function() {
+        return Session.get("manageApprovals");
+    },
     unapprovedPlayers: function () {
-        var uninit = Meteor.users.find({approved:{$eq:null}}, {fields: "_id"}).fetch();
-        if (uninit.length > 0) {
-            Meteor.call ("initializeUsers", uninit, function (error, result) {
-                if (error == null) {
-                    //document.getElementById("submit_round_status").innerHTML = result;
-                    console.log ("Initialize worked:" + result);
-                } else {
-                    //document.getElementById("submit_round_status").innerHTML = error.message + ". Refresh the browser to update the UI with the current round settings.";
-                    console.log ("Initialize failed:" + error.message);
-                }
-            });
+        Meteor.call("initializeNewUsers");
+        var p = Meteor.users.find({ approved: { $ne: 1 } }, { sort: { "profile.name": 1 }, fields: { "profile.name": 1, "profile.email": 1 } }).fetch();
+        for (var ix = 0; ix < p.length; ix++) {
+            p[ix].playerId = p[ix]._id;
         }
-        
-        var p = Meteor.users.find({approved:{$ne:1}}, {sort: {"profile.name": 1}, fields: {"profile.name":1, "profile.email":1, "_id":1}}).fetch();
         return p;
     }
 });
@@ -362,7 +359,6 @@ Template.adminSettings.helpers({
 // Event handler for admin settings template - updates admin settings
 Template.adminSettings.events({
     'click #submit_round': function (event, template) {
-        // document.getElementById("submit_round_status").innerHTML = "Not implemented";
         roundEnds = document.getElementById("round_ends").value;
         roundMsg = document.getElementById("round_msg").value;
         Meteor.call ("updateRoundSettings", roundEnds, roundMsg, function (error, result) {
@@ -381,5 +377,35 @@ Template.adminSettings.events({
     },
     'mouseleave #submit_newround': function(event){
         document.getElementById("submit_newround_status").innerHTML = "";
+    },
+    'click #manage_approvals': function (event) {
+        Session.set("manageApprovals", 1);
+    },
+    'click #hide_approvals': function (event) {
+        Session.set("manageApprovals", 0);
+    },
+    'click .approve_user': function (event) {
+        //console.log("approve user: event.target.id = " + event.target.id);
+        Meteor.call("approveUser", event.target.id, function (error, result) {
+            if (error == null) {
+                console.log(result);
+                //document.getElementById("submit_round_status").innerHTML = result;
+            } else {
+                console.warn(error.message);
+                //document.getElementById("submit_round_status").innerHTML = error.message + ". Refresh the browser to update the UI with the current round settings.";
+            }
+        });
+    },
+    'click .delete_user': function (event) {
+        //console.log("delete user: event.target.id = " + event.target.id);
+        Meteor.call("deleteUser", event.target.id, function (error, result) {
+            if (error == null) {
+                console.log(result);
+                //document.getElementById("submit_round_status").innerHTML = result;
+            } else {
+                console.warn(error.message);
+                //document.getElementById("submit_round_status").innerHTML = error.message + ". Refresh the browser to update the UI with the current round settings.";
+            }
+        });
     }
 });
