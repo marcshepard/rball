@@ -1,10 +1,9 @@
 <!-- rball.html; the main web page for the site -->
-
 <!-- Title and icon that appear in browser tab for this site -->
 <head>
-	<title>rball</title>
-	<link rel="shortcut icon" href="/favicon.ico">
-	<link rel="icon" href="/favicon.ico">
+    <title>rball</title>
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="icon" href="/favicon.ico">
 </head>
 
 <body>
@@ -20,7 +19,7 @@
                 <button type="button" class="navbar-toggle navbar-center" data-toggle="collapse" data-target="#myNavbar">
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>                        
+                    <span class="icon-bar"></span>
                 </button>
             </div>
             <div class="collapse navbar-collapse" id="myNavbar">
@@ -32,25 +31,27 @@
             </div>
         </div>
     </nav>
-    {{> yield "main"}}  
+    {{> yield "main"}}
 </template>
 
 
 <!-- Home page, with context-specific text -->
 <template name="home">
     <div class="container">
-        <p>Welcome to the <a href="/about">MSFT racquetball ladder</a>! <b>The current round ends {{roundEnds}}.</b> 
-        Please schedule your games now to avoid no-play penalties (or worse). {{roundMsg}}</p>
-{{#if currentUser}}
-    {{#if activeUser}}
+        <p>
+            Welcome to the <a href="/about">MSFT racquetball ladder</a>! <b>The current round ends {{roundEnds}}.</b>
+            Please schedule your games now to avoid no-play penalties (or worse). {{roundMsg}}
+        </p>
+        {{#if currentUser}}
+        {{#if activeUser}}
         {{> enterResults}}
-    {{else}}
+        {{else}}
         <p>You are inactive this round. Go to <a href="/settings">settings</a> to change status for next round.</p>
-    {{/if}}
+        {{/if}}
         {{> activePlayers}}
-{{else}}
+        {{else}}
         <p>Please sign in to use this site.</p>
-{{/if}}
+        {{/if}}
     </div>
 </template>
 
@@ -58,29 +59,32 @@
 <template name="enterResults">
     <div>
         <p><b>Report results</b></p>
-        <p>Once you have submitted results for both required matches, you will have the option to play and submit results for a bonus match against
+        <p>
+            Once you have submitted results for both required matches, you will have the option to play and submit results for a bonus match against
             any other active player who has also finisheded their required matches.
-        </p>    
+        </p>
         <table class="form_table">
-{{#if above}}
+            {{#if above}}
             <tr>
                 <td class="form_table_data" align="right">Above vs {{above}}: &nbsp;</td>
                 <td class="form_table_data"><select id="above_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
             </tr>
-{{/if}}
-{{#if below}}
+            {{/if}}
+            {{#if below}}
             <tr>
-                <td class="form_table_data" align="right" >Below vs {{below}}: &nbsp;</td>
+                <td class="form_table_data" align="right">Below vs {{below}}: &nbsp;</td>
                 <td class="form_table_data"><select id="below_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
             </tr>
-{{/if}}
+            {{/if}}
             <tr>
-                <td class="form_table_data" align="right" >Bonus vs
+                <td class="form_table_data" align="right">
+                    Bonus vs
                     <select id="bonus_user">
-{{#each bonusUsers}}
+                        {{#each bonusUsers}}
                         <option>{{name}}</option>
-{{/each}}
-                    </select>: &nbsp;</td>
+                        {{/each}}
+                    </select>: &nbsp;
+                </td>
                 <td class="form_table_data"><select id="bonus_result"><option value="N"></option><option value="W">W</option><option value="L">L</option><option value="WF">WF</option><option value="LF">LF</option><option value="T">T</option></select></td>
             </tr>
             <tr>
@@ -88,7 +92,7 @@
                 <td class="form_table_data"><span id="submit_results_status"></span></td>
             </tr>
         </table>
-        <br/>
+        <br />
     </div>
 </template>
 
@@ -109,7 +113,7 @@
                 </tr>
             </thead>
             <tbody>
-{{#each players}}
+                {{#each players}}
                 <tr>
                     <td>{{rank}}</td>
                     <td>{{points}}</td>
@@ -119,7 +123,7 @@
                     <td>{{prevBelowResult}}</td>
                     <td>{{prevBonusResult}}</td>
                 </tr>
-{{/each}}
+                {{/each}}
             </tbody>
         </table>
     </div>
@@ -165,25 +169,25 @@
             contribute. MSFT identity login is not yet supported (no Meteor packages for this yet), but perhaps we'll build something
             in the future. If you have any feedback or suggestions, please send us <a href="mailto:msladder@microsoft.com">email</a>.
         </p>
-        
+
     </div>
 </template>
 
 <!-- Settings page - with additional settings options for admins -->
 <template name="settings">
     <div class="container">
-{{#if currentUser}}
-    {{#if newUser}}
+        {{#if currentUser}}
+        {{#if newUser}}
         {{> newUserSettings}}
-    {{else}}
+        {{else}}
         {{> userSettings}}
-    {{/if}}
-    {{#if admin}}
+        {{/if}}
+        {{#if admin}}
         {{> adminSettings}}
-    {{/if}}
-{{else}}
+        {{/if}}
+        {{else}}
         <p>You must sign in to configure your settings</p>
-{{/if}}
+        {{/if}}
     </div>
 </template>
 
@@ -191,17 +195,17 @@
     <div class="container">
         <p><b>New Users</b></p>
         <p>
-        Welcome to the MSFT ladder. As a new user, please reach out to a couple of active players to schedule some practice matches to help
-        determine the right place to start out. Once you are done, send email to <a href="mailto:msladder@microsoft.com">msladder</a>
-        with the results so we know where to place you the next round (yes, it's on to TODO list to let you submit the results in a
-        form instead of email, but it's email for now). New players will not be activated until they have played
-        some placement matches.
+            Welcome to the MSFT ladder. As a new user, please reach out to a couple of active players to schedule some practice matches to help
+            determine the right place to start out. Once you are done, send email to <a href="mailto:msladder@microsoft.com">msladder</a>
+            with the results so we know where to place you the next round (yes, it's on to TODO list to let you submit the results in a
+            form instead of email, but it's email for now). New players will not be activated until they have played
+            some placement matches.
         </p>
         <p>
-        If you are an old-timer using the web site for the first time, then skip the practice matches and just shoot us an
-        email so we can get you in the database. If you are alread in the DB via another account (e.g., you just added
-        this account for FB login), then please include the account ID of the account you want to keep in the email; this
-        account has ID={{id}}. Then we can make sure to activate this account with the right rank next round.
+            If you are an old-timer using the web site for the first time, then skip the practice matches and just shoot us an
+            email so we can get you in the database. If you are alread in the DB via another account (e.g., you just added
+            this account for FB login), then please include the account ID of the account you want to keep in the email; this
+            account has ID={{id}}. Then we can make sure to activate this account with the right rank next round.
         </p>
         <p>After this account is activated for the first time, this page will let you toggle your future rest/active states yourself.</p>
     </div>
@@ -235,7 +239,7 @@
             name (or email) you specify at login. If you are using FB login, this is controlled by FB. If you are using
             name/password login, then you'll need to email msladder to change the login name/email (or switch to FB login).
         </p>
-        <br/>
+        <br />
     </div>
 </template>
 
@@ -269,7 +273,7 @@
         <p><b>(Admin) User approval</b></p>
         <p>{{numUnapprovedPlayers}} users are waiting for approval</p>
 {{#if numUnapprovedPlayers}}
-  {{#if manageApprovals}}
+    {{#if manageApprovals}}
         <table class="form_table" id="manageApprovalsButton">
             <tr>
                 <td class="form_table_data"><button id="hide_approvals">Hide approvals...</button></td>
@@ -294,7 +298,7 @@
                 </tr>
             </thead>
             <tbody>
-    {{#each unapprovedPlayers}}
+            {{#each unapprovedPlayers}}
                 <tr>
                     <td>{{profile.name}}</td>
                     <td>{{profile.email}}</td>
@@ -302,26 +306,80 @@
                     <td><button class="approve_user" id="{{playerId}}">Approve</button></td>
                     <td><button class="delete_user" id="{{playerId}}">Delete</button></td>
                 </tr>
-    {{/each}}
+            {{/each}}
             </tbody>
         </table>
-  {{else}}
+    {{else}}
         <table class="form_table" id="manageApprovalsButton">
             <tr>
                 <td class="form_table_data"><button id="manage_approvals">Manage approvals...</button></td>
             </tr>
         </table>
-  {{/if}}
+    {{/if}}
 {{/if}}
-        <br/>
-        
+        <br />
+    </div>
+    {{> newRound}}
+</template>
+
+<!-- Admin Settings - new round -->
+<template name="newRound">
+    <div class="container">
         <p><b>(Admin) Start new round</b></p>
-        <table class="form_table">
+{{#if generateNewRound}}
+        <table class="form_table" id="manageApprovalsButton">
             <tr>
-                <td class="form_table_data"><button id="submit_newround">Generate...</button></td>
-                <td class="form_table_data"><span id="submit_newround_status"></span></td>
+                <td class="form_table_data"><button id="hide_new_round">Hide round generation...</button></td>
             </tr>
         </table>
+        <p>
+            The list of players below have ranks/points computed from the last round in which they played (which may or may
+            not be the last round). Some players will need to be manually adjusted (e.g, new players, or players with new accounts).
+            You may also delete players (e.g, dup accounts, or players who have left the area or not played in a very long time).
+            The list of players who are resting this round is also shown in case there are dups you need to copy data from.
+        </p>
+        <div class="table-responsive">
+            <table class="table table-striped table-condensed">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Points</th>
+                        <th>Player</th>
+                        <th>Last Round</th>
+                        <th>Prev Rank</th>
+                        <th>Prev Above</th>
+                        <th>Prev Below</th>
+                        <th>Prev Bonus</th>
+                        <th>Account</th>
+                        <th>ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+    {{#each activePlayers}}
+                    <tr>
+                        <td>{{incr @index}}</td>
+                        <td>{{points}}</td>
+                        <td><a href="mailto:{{profile.email}}">{{profile.name}}</a></td>
+                        <td>{{lastRound}}</td>
+                        <td>{{prevRank}}</td>
+                        <td>{{prevAboveResult}}</td>
+                        <td>{{prevBelowResult}}</td>
+                        <td>{{prevBonusResult}}</td>
+                        <td>{{accountType}}</td>
+                        <td>{{id}}</td>
+                    </tr>
+    {{/each}}
+                </tbody>
+            </table>
+        </div>
+
+{{else}}
+        <table class="form_table" id="manageApprovalsButton">
+            <tr>
+                <td class="form_table_data"><button id="generate_new_round">Generate new round...</button></td>
+            </tr>
+        </table>
+{{/if}}
         <br />
     </div>
 </template>

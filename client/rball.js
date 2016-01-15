@@ -101,6 +101,30 @@ function oppositeResult (str) {
     }
 }
 
+function pointsFor (str) {
+    switch (str) {
+        case null:
+        case "":
+        case "LF":
+            return -1.2;
+        case "W":
+        case "WF":
+            return 1.1;
+        case "L":
+            return -1.1;
+        case "T":
+            return 0;
+    }
+}
+
+function bonusPointsFor (str, rankDiff) {
+    if ((str=="W") || (str=="WF")) {
+        val = 1.1 + 0.1 * rankDiff;
+        return (val > 0 ? val : 0);
+    }
+    return 0;
+}
+
 // Function used in the enterResults helper - see if a player has played required matches (so eligable for a bonus match)
 function playedRequiredMatches(user) {
     if ((user.aboveUser != null) && (user.aboveResult == ""))
@@ -306,7 +330,9 @@ Template.adminSettings.helpers({
         var pMatches = Meteor.users.find({active:1, aboveResult :{$ne:""}}).count();
         var nMatches = Meteor.users.find({}).count() - 1;
         var roundStats = pMatches + " of " + nMatches + " matches played (" + parseInt((pMatches * 100)/nMatches) + "%)"; 
-        var roundEnds = Settings.findOne({}).roundEnds.toDateString();
+        var roundEnds = Settings.findOne({}).roundEnds;
+        if (roundEnds != null)
+            roundEnds = roundEnds.toDateString();
         var users = Meteor.users.find({active:1}).fetch();
         var to = "";
         for (var ix=0; ix<users.length; ix++) {
@@ -369,14 +395,8 @@ Template.adminSettings.events({
             }
         });
     },
-    'click #submit_newround': function (event) {
-        document.getElementById("submit_newround_status").innerHTML = "Not implemented";
-    },
     'mouseleave #submit_round': function(event){
         document.getElementById("submit_round_status").innerHTML = "";
-    },
-    'mouseleave #submit_newround': function(event){
-        document.getElementById("submit_newround_status").innerHTML = "";
     },
     'click #manage_approvals': function (event) {
         Session.set("manageApprovals", 1);
@@ -407,5 +427,101 @@ Template.adminSettings.events({
                 //document.getElementById("submit_round_status").innerHTML = error.message + ". Refresh the browser to update the UI with the current round settings.";
             }
         });
+    }
+});
+
+function updatedPlayer (user) {
+    this.rank = user.rank;
+    this.points = user.points;
+    this.profile = user.profile;  // name, email, activeNextRound
+    this.lastRound = user.lastRound;
+    this.active = user.active;
+    this.admin = user.admin;
+    this.aboveUser = user.aboveUser;
+    this.aboveResult = user.aboveResult;
+    this.belowUser = user.belowUser;
+    this.belowResult = user.belowResult;
+    this.bonusUser = user.bonusUser;
+    this.bonusResult = user.bonusResult;
+    this.prevRank = user.prevRank;
+    this.prevAboveResult = user.prevAboveResult;
+    this.prevBelowResult = user.prevBelowResult;
+    this.prevBonusResult = user.prevBonusResult;
+    this.id = user._id;
+    this._id = user._id;
+    this.accountType = user.accountType;
+    this.modified = false;
+};
+
+updatedPlayer.prototype.newRound = function() {
+    if (this.active) {
+        roundEnds = new Date(Settings.findOne({}).roundEnds);
+        this.lastRound = roundEnds.getMonth()+1 + "/" + roundEnds.getDate() + "/" + roundEnds.getYear() % 100;
+        this.prevRank = this.rank;
+        this.points = 100 - this.rank;
+
+        this.prevAboveResult = "";
+        if (this.aboveUser) {
+            this.points += pointsFor(this.aboveResult);
+            if (this.aboveResult == "")
+                this.prevAboveResult = "NP";
+            else
+                this.prevAboveResult = this.aboveResult + "(" + Meteor.users.findOne(this.aboveUser).profile.name + ")";
+        }
+        this.prevBelowResult = "";
+        if (this.belowUser) {
+            this.points += pointsFor(this.belowResult);
+            if (this.belowResult == "")
+                this.prevBelowResult = "NP";
+            else
+                this.prevBelowResult = this.belowResult + "(" + Meteor.users.findOne(this.belowUser).profile.name + ")";
+        }
+        this.prevBonusResult = "";
+        if (this.bonusUser && this.bonusResult) {
+            var rankDiff = this.rank - Meteor.users.findOne(this.bonusUser).rank;
+            this.points += bonusPointsFor(this.bonusResult, rankDiff);
+            this.prevBonusResult = this.bonusResult + "(" + Meteor.users.findOne(this.bonusUser).profile.name + ")";
+        }
+        
+        this.points = this.points.toFixed(1);
+        this.rank = -1;
+        this.aboveUser = "";
+        this.aboveResult = "";
+        this.belowUser = "";
+        this.belowResult = "";
+        this.bonusUser = "";
+        this.bonusResult = "";
+
+    }
+    this.active = this.profile.activeNextRound;
+};
+
+Template.newRound.helpers ({
+    generateNewRound: function() {
+        return Session.get("generateNewRound");
+    },
+
+    activePlayers: function () {
+        activeUsers = Meteor.users.find({ "profile.activeNextRound": 1 }).fetch();
+        var newRoundPlayers = new Mongo.Collection(null);
+        for (var ix = 0; ix < activeUsers.length; ix++) {
+            var player = new updatedPlayer(activeUsers[ix]);
+            player.newRound();
+            newRoundPlayers.insert(player);
+        }
+        return newRoundPlayers.find({}, { sort: { points: -1 } }).fetch();
+    },
+
+    incr: function (val) {
+        return val + 1;
+    }
+});
+
+Template.newRound.events({
+    'click #generate_new_round': function (event) {
+        Session.set("generateNewRound", 1);
+    },
+    'click #hide_new_round': function (event) {
+        Session.set("generateNewRound", 0);
     }
 });

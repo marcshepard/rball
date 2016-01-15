@@ -50,9 +50,10 @@ function initializeUser (userId, approved) {
         console.warn ("Can't find email for userId " + userId);
     }
     console.log("   email = " + email);
-    
+
     Meteor.users.update({_id: userId}, {$set: {
         "approved": approved,
+        "accountType": ((user.services != null) && (user.services.facebook != null)) ? "Facebook" : "Local",
         "active": 0,
         "profile.activeNextRound": approved,
         "profile.name": name,
@@ -230,6 +231,18 @@ Meteor.methods({
     populateDB:function () {
         if (Meteor.user().admin)
             populateDB();
+    },
+
+    setAccountType:function() {
+        if (!Meteor.user().admin)
+            return;
+
+        users = Meteor.users.find ({accountType:null}).fetch();
+        for (var ix=0; ix<users.length; ix++) {
+            var user = users[ix];
+            var accountType = ((user.services != null) && (user.services.facebook != null)) ? "Facebook" : "Local";
+            Meteor.users.update (user._id, {$set:{"accountType":accountType}});
+        }
     },
     
     initializeNewUsers:function () {
