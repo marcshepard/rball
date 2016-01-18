@@ -40,10 +40,10 @@ Router.route('/settings', function () {
 // Helper functions (providing {{var}} support) for home template
 Template.home.helpers({
     roundEnds:function(){
-        var settings =Settings.findOne();
+        var settings = Settings.findOne();
         if (settings == null)
             return "Sometime soon";
-        return (settings.roundEnds).toDateString();
+        return new Date(settings.roundEnds).toDateString();
     },
     roundMsg:function(){
         if (Settings.findOne() == null)
@@ -58,7 +58,7 @@ Template.home.helpers({
 // Helper functions (providing {{var}} support) for activePlayers template
 Template.activePlayers.helpers({
     players:function(){
-        var p = Meteor.users.find({active:1},{sort: {rank: 1}}).fetch();
+        var p = Meteor.users.find({active:1},{sort: {rank: 1}});
         return p;
     }
 });
@@ -326,45 +326,41 @@ Template.adminSettings.helpers({
         var nMatches = Meteor.users.find({}).count() - 1;
         return pMatches + " of " + nMatches + " matches played (" + parseInt((pMatches * 100)/nMatches) + "%)"; 
     },
-    nagMailLink: function() {
-        var pMatches = Meteor.users.find({active:1, aboveResult :{$ne:""}}).count();
-        var nMatches = Meteor.users.find({}).count() - 1;
-        var roundStats = pMatches + " of " + nMatches + " matches played (" + parseInt((pMatches * 100)/nMatches) + "%)"; 
-        var roundEnds = Settings.findOne({}).roundEnds;
-        if (roundEnds != null)
-            roundEnds = roundEnds.toDateString();
-        var users = Meteor.users.find({active:1}).fetch();
-        var to = "";
-        for (var ix=0; ix<users.length; ix++) {
-            to += (users[ix].profile.email + ";")
-        }
-        to += "msladder@microsft.com";
-        var subject = "MS racquetball ladder reminder";
-        var body = "The current round ends on " + roundEnds + ". So far there have been " +
-            roundStats + ". As a courtesy to other players and to avoid the no-play penalty, please " +
-            "make sure to play your matches and send the results at http://rball.meteor.com " +
-            "before the round ends."
-        return "mailto:"+escape(to)+"?subject="+subject+"&body="+escape(body);
+    nagMailLink: function () {
+      if (Settings.findOne({}) == null)
+        return "#";
+
+      var pMatches = Meteor.users.find({active:1, aboveResult :{$ne:""}}).count();
+      var nMatches = Meteor.users.find({}).count() - 1;
+      var roundStats = pMatches + " of " + nMatches + " matches played (" + parseInt((pMatches * 100)/nMatches) + "%)"; 
+      var roundEnds = Settings.findOne({}).roundEnds;
+      if (roundEnds != null)
+          roundEnds = new Date(roundEnds).toDateString();
+      var users = Meteor.users.find({active:1}).fetch();
+      var to = "";
+      for (var ix=0; ix<users.length; ix++) {
+          to += (users[ix].profile.email + ";")
+      }
+      to += "msladder@microsft.com";
+      var subject = "MS racquetball ladder reminder";
+      var body = "The current round ends on " + roundEnds + ". So far there have been " +
+          roundStats + ". As a courtesy to other players and to avoid the no-play penalty, please " +
+          "make sure to play your matches and send the results at http://rball.meteor.com " +
+          "before the round ends."
+
+      return "mailto:"+escape(to)+"?subject="+subject+"&body="+escape(body);
     },
     roundEnds: function () {
-        var settings = Settings.findOne();
-        if (settings == null)
-            return "";
-        return settings.roundEnds.toDateString();
+      var settings = Settings.findOne({});
+      if (settings == null)
+          return "";
+      return new Date(settings.roundEnds).toDateString();
     },
     roundMsg: function () {
-        var settings = Settings.findOne();
-        if (settings == null)
-            return "";
-        return settings.roundMsg;
-    },
-    newRoundEnds: function () {
-        var settings = Settings.findOne();
-        if (settings == null)
-            return "";
-        var newDate = new Date(settings.roundEnds);
-        newDate.setDate (newDate.getDate() + 14);
-        return newDate.toDateString();
+      var settings = Settings.findOne({});
+      if (settings == null)
+          return "";
+      return settings.roundMsg;
     },
     numUnapprovedPlayers: function() {
         return Meteor.users.find({ approved: { $ne: 1 } }).count();
@@ -405,14 +401,11 @@ Template.adminSettings.events({
         Session.set("manageApprovals", 0);
     },
     'click .approve_user': function (event) {
-        //console.log("approve user: event.target.id = " + event.target.id);
         Meteor.call("approveUser", event.target.id, function (error, result) {
             if (error == null) {
                 console.log(result);
-                //document.getElementById("submit_round_status").innerHTML = result;
             } else {
-                console.warn(error.message);
-                //document.getElementById("submit_round_status").innerHTML = error.message + ". Refresh the browser to update the UI with the current round settings.";
+                alert (error.message);
             }
         });
     },
@@ -431,26 +424,33 @@ Template.adminSettings.events({
 });
 
 function updatedPlayer (user) {
-    this.rank = user.rank;
-    this.points = user.points;
-    this.profile = user.profile;  // name, email, activeNextRound
-    this.lastRound = user.lastRound;
-    this.active = user.active;
-    this.admin = user.admin;
-    this.aboveUser = user.aboveUser;
-    this.aboveResult = user.aboveResult;
-    this.belowUser = user.belowUser;
-    this.belowResult = user.belowResult;
-    this.bonusUser = user.bonusUser;
-    this.bonusResult = user.bonusResult;
-    this.prevRank = user.prevRank;
-    this.prevAboveResult = user.prevAboveResult;
-    this.prevBelowResult = user.prevBelowResult;
-    this.prevBonusResult = user.prevBonusResult;
-    this.id = user._id;
-    this._id = user._id;
-    this.accountType = user.accountType;
-    this.modified = false;
+  this.rank = parseInt(user.rank);
+  if (this.rank == NaN) {
+    Console.warn("updatedPlayer: non-int rank value for user " + user.profile.name + ": using 50");
+    this.rank = 50;
+  }
+  this.points = parseFloat(user.points);
+  if (this.points == NaN) {
+    Console.warn("updatedPlayer: non-float points value for user " + user.profile.name + ": using 10");
+    this.points = 10;
+  }
+  this.profile = user.profile;  // name, email, activeNextRound
+  this.lastRound = user.lastRound;
+  this.active = user.active;
+  this.admin = user.admin;
+  this.aboveUser = user.aboveUser;
+  this.aboveResult = user.aboveResult;
+  this.belowUser = user.belowUser;
+  this.belowResult = user.belowResult;
+  this.bonusUser = user.bonusUser;
+  this.bonusResult = user.bonusResult;
+  this.prevRank = user.prevRank;
+  this.prevAboveResult = user.prevAboveResult;
+  this.prevBelowResult = user.prevBelowResult;
+  this.prevBonusResult = user.prevBonusResult;
+  this.id = user._id;
+  this._id = user._id;
+  this.accountType = user.accountType;
 };
 
 updatedPlayer.prototype.newRound = function() {
@@ -458,7 +458,7 @@ updatedPlayer.prototype.newRound = function() {
         roundEnds = new Date(Settings.findOne({}).roundEnds);
         this.lastRound = roundEnds.getMonth()+1 + "/" + roundEnds.getDate() + "/" + roundEnds.getYear() % 100;
         this.prevRank = this.rank;
-        this.points = 100 - this.rank;
+        this.points = 99 - this.rank;
 
         this.prevAboveResult = "";
         if (this.aboveUser) {
@@ -491,37 +491,143 @@ updatedPlayer.prototype.newRound = function() {
         this.belowResult = "";
         this.bonusUser = "";
         this.bonusResult = "";
-
     }
     this.active = this.profile.activeNextRound;
+
+    this.points = parseFloat(this.points);
 };
 
+var newRoundPlayers;
+
+function currentRound() {
+  var settings = Settings.findOne();
+  if (settings == null)
+    return true;
+
+  var currentRoundEnds = settings.roundEnds;
+  tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (currentRoundEnds > tomorrow)
+    return true;
+  return false;
+}
+
 Template.newRound.helpers ({
-    generateNewRound: function() {
-        return Session.get("generateNewRound");
-    },
+  generateNewRound: function() {
+    return Session.get("generateNewRound");
+  },
 
-    activePlayers: function () {
-        activeUsers = Meteor.users.find({ "profile.activeNextRound": 1 }).fetch();
-        var newRoundPlayers = new Mongo.Collection(null);
-        for (var ix = 0; ix < activeUsers.length; ix++) {
-            var player = new updatedPlayer(activeUsers[ix]);
-            player.newRound();
-            newRoundPlayers.insert(player);
-        }
-        return newRoundPlayers.find({}, { sort: { points: -1 } }).fetch();
-    },
+  activePlayers: function () {
+    activeUsers = Meteor.users.find({ $or: [{ "profile.activeNextRound": 1 }, { "active": 1 }] }).fetch();
 
-    incr: function (val) {
-        return val + 1;
+    newRoundPlayers = new Mongo.Collection(null);
+    for (var ix = 0; ix < activeUsers.length; ix++) {
+      var player = new updatedPlayer(activeUsers[ix]);
+      if (!currentRound())
+        player.newRound();
+      newRoundPlayers.insert(player);
     }
+
+    return newRoundPlayers.find({ deleteMe: { $ne : 1 } , "profile.activeNextRound" : 1}, { sort : { points : -1 } });
+  },
+
+  incr: function (val) {
+    return val + 1;
+  },
+
+  newRoundEnds: function () {
+    var settings = Settings.findOne();
+    if (settings == null)
+      return "";
+
+    if (currentRound())
+      return settings.roundEnds;
+      
+    var newDate = new Date(settings.roundEnds);
+    newDate.setDate(newDate.getDate() + 14);
+    return newDate.toDateString();
+  },
+
+  newRoundMsg: function () {
+    var settings = Settings.findOne();
+    if (settings == null)
+      return "";
+
+    if (currentRound())
+      return settings.roundMsg;
+
+    return "";
+  },
+
+  activeUser: function () {
+    return Meteor.user().active;
+  }
 });
 
 Template.newRound.events({
-    'click #generate_new_round': function (event) {
-        Session.set("generateNewRound", 1);
-    },
-    'click #hide_new_round': function (event) {
-        Session.set("generateNewRound", 0);
+  'click #generate_new_round': function (event) {
+      Session.set("generateNewRound", 1);
+  },
+
+  'click #hide_new_round': function (event) {
+      Session.set("generateNewRound", 0);
+  },
+
+  'keypress .new_round_points': function (event) {
+    if (event.keyCode != 13)
+      return;
+
+    var id = event.target.id.replace("pts_", "");
+    var val = event.target.value;
+
+    //console.log("Getting ready to update user " + id + " with new points value " + val);
+
+    if ((val.length < 10) && !isNaN(parseFloat(val))) {
+      // If new points were entered, update newRoundPlayer points
+      p = parseFloat(val);
+      newRoundPlayers.update({ _id: id }, { $set: { points: p } });
+    } else if (val == "DEL") {
+      // If DEL was entered, mark user for deletion
+      newRoundPlayers.update({ _id: id }, { $set: { deleteMe: 1 } });
+    } else if (newRoundPlayers.findOne({ _id: val }) != null) {
+      // If another players ID was entered, copy that other players data and delete this player
+      newUserId = val;
+      oldUser = newRoundPlayers.findOne({ _id: id });
+      if (newUserId != id) {
+        newRoundPlayers.update({ _id: newUserId }, {$set: {
+          active:oldUser.active,
+          approved:oldUser.approved,
+          admin: oldUser.admin,
+          points: parseFloat(oldUser.points),
+          rank: oldUser.rank,
+          lastRound: oldUser.lastRound,
+          prevRank: oldUser.prevRank,
+          prevAboveResult: oldUser.prevAboveResult,
+          prevBelowResult: oldUser.prevBelowResult,
+          prevBonusResult: oldUser.prevBonusResult,
+          "profile.name": oldUser.profile.name,
+          "profile.email": oldUser.profile.email,
+          "profile.activeNextRound": oldUser.profile.activeNextRound
+        }
+        });
+
+        newRoundPlayers.update({ _id: id }, { $set: { "deleteMe": 1 } });
+      }
+    } else {
+      // Invalid input - just ignore.
     }
+  },
+
+  'click #submit_new_round': function (event) {
+    var newRoundEnds = document.getElementById("new_round_ends").value;
+    var newRoundMsg = document.getElementById("new_round_msg").value;
+
+    Meteor.call("startNewRound", newRoundPlayers.find({}).fetch(), newRoundEnds, newRoundMsg, function (error, result) {
+      if (error == null) {
+        document.getElementById("submit_new_round_status").innerHTML = result;
+      } else {
+        document.getElementById("submit_new_round_status").innerHTML = error.message;
+      }
+    });
+  },
 });

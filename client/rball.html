@@ -253,7 +253,7 @@
         <table class="form_table">
             <tr>
                 <td class="form_table_data" align="right">Ends: &nbsp;</td>
-                <td class="form_table_data"><input type="text" class="form-control" id="round_ends" value="{{roundEnds}}"></td>
+                <td class="form_table_data"><textarea id="round_ends" rows="1">{{roundEnds}}</textarea></td>
             </tr>
             <tr>
                 <td class="form_table_data" align="right">Message: &nbsp;</td>
@@ -332,12 +332,17 @@
                 <td class="form_table_data"><button id="hide_new_round">Hide round generation...</button></td>
             </tr>
         </table>
-        <p>
-            The list of players below have ranks/points computed from the last round in which they played (which may or may
-            not be the last round). Some players will need to be manually adjusted (e.g, new players, or players with new accounts).
-            You may also delete players (e.g, dup accounts, or players who have left the area or not played in a very long time).
-            The list of players who are resting this round is also shown in case there are dups you need to copy data from.
-        </p>
+        <p>Generate a new round - scroll to the bottom for detailed instructions</p>
+        <table class="form_table">
+            <tr>
+                <td class="form_table_data" align="right">Ends: &nbsp;</td>
+                <td class="form_table_data"><textarea id="new_round_ends" rows="1">{{newRoundEnds}}</textarea></td>
+            </tr>
+            <tr>
+                <td class="form_table_data" align="right">Message: &nbsp;</td>
+                <td class="form_table_data"><textarea id="new_round_msg" cols="40" rows="3">{{newRoundMsg}}</textarea></td>
+            </tr>
+        </table>
         <div class="table-responsive">
             <table class="table table-striped table-condensed">
                 <thead>
@@ -358,7 +363,7 @@
     {{#each activePlayers}}
                     <tr>
                         <td>{{incr @index}}</td>
-                        <td>{{points}}</td>
+                        <td><textarea class="new_round_points" id="pts_{{id}}" rows="1" cols="5">{{points}}</textarea></td>
                         <td><a href="mailto:{{profile.email}}">{{profile.name}}</a></td>
                         <td>{{lastRound}}</td>
                         <td>{{prevRank}}</td>
@@ -372,7 +377,39 @@
                 </tbody>
             </table>
         </div>
-
+        <br />
+        <table class="form_table">
+            <tr>
+                <td class="form_table_data"><button id="submit_new_round">Submit</button></td>
+                <td class="form_table_data"><span id="submit_new_round_status"></span></td>
+            </tr>
+        </table>
+        <div>
+            <br />
+            <p>
+                The table above lists players who have specified they want to be active next round. The rank/points are computed from the last round they played (which may or may
+                not be the last round). To adjust things:
+            </p>
+            <ol>
+                <li>To adjust someones rank (e.g, new players), just type in a new points value for them and the return key - the table will update after you hit return.</li>
+                <li>To merge accounts (e.g, if a player created a FB account to replace their name/password account), cut-paste the new account ID (typically Account=FB) into the "points" field of the old account (the one they last played, typically Account=Local).</li>
+                <li>To permanently delete a player, type DEL in their points.</li>
+                <li>If anyone is missing - have them add themselves; new players should create an account (for you to approve), existing players should go to settings and toggle their active/rest state. There is currently no admin UX to do this on behalf of a user.</li>
+                <li>There is currently no admin UX to rest a player for the next round - they have to do this themselves by going to settings.</li>
+            </ol>
+            <p>
+                Nothing is persisted until you click "submit"; until then you can make edits or refresh your browser to start again.
+                Once you have everything how you like it, click "submit" to start the round.
+                This doesn't currently auto-generate an email (will add that in Feb). To send new round email, click on the
+                admin "send email" link (under current round settings), and cut-and-paste the generated round rank table (on the home page).
+             </p>
+            <p>
+                If, after submitting to start a new round, you want to make some last minute changes - just click "generate new round..." again.
+                If the current round end-date is not at least a day ahead, this will just regenerate the existing round.
+                <b>Beware</b> that regenerating the existing round will wipe out any results entered for the round, so this can only be done
+                safely the first day or two of the round.
+            </p>
+        </div>
 {{else}}
         <table class="form_table" id="manageApprovalsButton">
             <tr>
