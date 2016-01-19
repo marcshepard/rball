@@ -500,11 +500,13 @@ updatedPlayer.prototype.newRound = function() {
 var newRoundPlayers;
 
 function currentRound() {
-  var settings = Settings.findOne();
-  if (settings == null)
+  var settings = Settings.findOne({});
+  if (settings == null) {
+    console.log("currentRound returning true because can't find settings...");
     return true;
+  }
 
-  var currentRoundEnds = settings.roundEnds;
+  var currentRoundEnds = new Date(settings.roundEnds);
   tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   if (currentRoundEnds > tomorrow)
@@ -623,11 +625,12 @@ Template.newRound.events({
     var newRoundMsg = document.getElementById("new_round_msg").value;
 
     Meteor.call("startNewRound", newRoundPlayers.find({}).fetch(), newRoundEnds, newRoundMsg, function (error, result) {
-      if (error == null) {
-        document.getElementById("submit_new_round_status").innerHTML = result;
+      if (error != null) {
+        alert (error.message);
       } else {
-        document.getElementById("submit_new_round_status").innerHTML = error.message;
+        alert(result);
       }
     });
+    Session.set("generateNewRound", 0);
   },
 });

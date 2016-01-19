@@ -176,7 +176,7 @@ function emailResults (opponent, result) {
     from: "msladder@microsoft.com",
     subject: "MS rball: " + summary,
     bcc: "msladder@microsoft.com",
-    text: "This is an auto-generated email from <a href='http://rball.meteor.com'>the MS racquetball ladder web site</a>, based on results submitted by " + user.profile.name
+    html: "This is an auto-generated email from http://rball.meteor.com, based on results submitted by " + user.profile.name
   });
 }
 
@@ -236,13 +236,7 @@ function validateRoundSettingsChangeAllowed(roundEndDate, roundMsg) {
   return true;
 }
 
-Meteor.methods({
-  // TODO - remove this. It's a command-line script to nuke the DB and start over with migrated data
-  populateDB:function () {
-     if (Meteor.user().admin)
-         populateDB();
-  },
-    
+Meteor.methods({    
   initializeNewUsers:function () {
       if (Meteor.user().admin) {
           var users = Meteor.users.find({ approved: null}).fetch();
@@ -263,7 +257,7 @@ Meteor.methods({
               from: "msladder@microsoft.com",
               subject: "You have been approved/activated on the MS rball ladder",
               bcc: "msladder@microsoft.com",
-              html: `Going forward you can use <a href="http://rball.meteor.com">the MS racquetball ladder web site</a> to manage your active/rest state, and when the next round starts see your scheduled matches and enter results.`
+              html: `Going forward you can use http://rball.meteor.com to manage your active/rest state, and when the next round starts see your scheduled matches and enter results.`
           });
           return "Done..."
       }
@@ -461,5 +455,5 @@ Meteor.startup(function () {
     console.log("Server is starting...");
 	
     // Populate the DB with initial data
-    populateDB();
+    //populateDB();
 });
