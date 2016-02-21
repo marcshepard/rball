@@ -19,6 +19,19 @@ Router.route('/', function () {
   $("#nav_home").addClass("active");
 });
 
+// Render this template in the "home" page
+Router.route('/player/:_id', function () {
+  this.render('userProfile', {
+    to: "main",
+    data: function () {
+      Meteor.subscribe("history", this.params._id);
+      var user = Meteor.users.findOne(this.params._id);
+      var history = History.find({ userId: this.params._id }, { sort: { roundSort: -1 } });
+      return { user: user, history: history };
+    }
+  });
+});
+
 // Render this template in the "about" page
 Router.route('/about', function () {
   this.render('about', {
@@ -142,11 +155,23 @@ Template.enterResults.helpers({
             return "";
         return user.profile.name;
     },
+    aboveId: function () {
+      var user = Meteor.users.findOne({ _id: Meteor.user().aboveUser });
+      if (user == null)
+        return "";
+      return user._id;
+    },
     below:function(){
         var user = Meteor.users.findOne ({_id:Meteor.user().belowUser});
         if (user == null)
             return "";
         return user.profile.name;
+    },
+    belowId: function () {
+      var user = Meteor.users.findOne({ _id: Meteor.user().belowUser });
+      if (user == null)
+        return "";
+      return user._id;
     },
     aboveResult:function(){
         var val = Meteor.user().aboveResult;
@@ -322,16 +347,16 @@ Template.userSettings.onRendered(function(){
 // Helper functions (providing {{var}} support) for settings template
 Template.adminSettings.helpers({
     roundStats: function () {
-        var pMatches = Meteor.users.find({active:1, aboveResult :{$ne:""}}).count();
-        var nMatches = Meteor.users.find({}).count() - 1;
+        var pMatches = Meteor.users.find({active:1, aboveResult:{$ne:""}}).count();
+        var nMatches = Meteor.users.find({active:1}).count() - 1;
         return pMatches + " of " + nMatches + " matches played (" + parseInt((pMatches * 100)/nMatches) + "%)"; 
     },
     nagMailLink: function () {
       if (Settings.findOne({}) == null)
         return "#";
 
-      var pMatches = Meteor.users.find({active:1, aboveResult :{$ne:""}}).count();
-      var nMatches = Meteor.users.find({}).count() - 1;
+      var pMatches = Meteor.users.find({active:1, aboveResult:{$ne:""}}).count();
+      var nMatches = Meteor.users.find({active:1}).count() - 1;
       var roundStats = pMatches + " of " + nMatches + " matches played (" + parseInt((pMatches * 100)/nMatches) + "%)"; 
       var roundEnds = Settings.findOne({}).roundEnds;
       if (roundEnds != null)

@@ -236,62 +236,54 @@ function validateRoundSettingsChangeAllowed(roundEndDate, roundMsg) {
   return true;
 }
 
-Meteor.methods({    
-  initializeNewUsers:function () {
-      if (Meteor.user().admin) {
-          var users = Meteor.users.find({ approved: null}).fetch();
-          for (var ix = 0; ix < users.length; ix++) {
-              initializeUser (users[ix]._id, 0);
-          }
-          return "Done..."
+// APIs that the client can call to make DB changes
+Meteor.methods({
+  // Called before starting a new round to ensure a consistent set of properties are set for all users
+  initializeNewUsers: function () {
+    if (Meteor.user().admin) {
+      var users = Meteor.users.find({ approved: null }).fetch();
+      for (var ix = 0; ix < users.length; ix++) {
+        initializeUser(users[ix]._id, 0);
       }
-      throw new Meteor.Error("Non-admins can't do this", "Invalid User");
+      return "Done..."
+    }
+    throw new Meteor.Error("Non-admins can't do this", "Invalid User");
   },
 
+  // Approve a user request to join the ladder, and send them confirmation email
   approveUser: function (id) {
-      if (Meteor.user().admin) {
-          Meteor.users.update({ _id: id }, { $set: { "approved": 1, "profile.activeNextRound": 1 } });
-          user = Meteor.users.findOne({ _id: id });
-          Email.send({
-              to: user.profile.email,
-              from: "msladder@microsoft.com",
-              subject: "You have been approved/activated on the MS rball ladder",
-              bcc: "msladder@microsoft.com",
-              html: `Going forward you can use http://rball.meteor.com to manage your active/rest state, and when the next round starts see your scheduled matches and enter results.`
-          });
-          return "Done..."
-      }
-      throw new Meteor.Error("Non-admins can't do this", "Invalid User");
+    if (Meteor.user().admin) {
+      Meteor.users.update({ _id: id }, { $set: { "approved": 1, "profile.activeNextRound": 1 } });
+      user = Meteor.users.findOne({ _id: id });
+      Email.send({
+        to: user.profile.email,
+        from: "msladder@microsoft.com",
+        subject: "You have been approved/activated on the MS rball ladder",
+        bcc: "msladder@microsoft.com",
+        html: `Going forward you can use http://rball.meteor.com to manage your active/rest state, and when the next round starts see your scheduled matches and enter results.`
+      });
+      return "Done..."
+    }
+    throw new Meteor.Error("Non-admins can't do this", "Invalid User");
   },
 
+  // Permanently delete a user from the ladder (remove all records - vs just changing rest/active status)
   deleteUser: function (id) {
-      if (Meteor.user().admin) {
-          Meteor.users.remove({_id: id});
-          return "Done..."
-      }
-      throw new Meteor.Error("Non-admins can't do this", "Invalid User");
+    if (Meteor.user().admin) {
+      Meteor.users.remove({ _id: id });
+      History.remove({ userId: id });
+      return "Done..."
+    }
+    throw new Meteor.Error("Non-admins can't do this", "Invalid User");
   },
 
+  // Edit user properties - this is only used from browser javascript console (alternative interface to MongoDB shell)
   editUser: function (id, change) {
-      if (Meteor.user().admin) {
-          Meteor.users.update({_id: id}, {$set:change});
-          return "Done..."
-      }
-      throw new Meteor.Error("Non-admins can't do this", "Invalid User");
-  },
-    
-  logUserInfo:function () {
-      var user = Meteor.user();
-      console.log ("User name: " + user.name);
-      console.log ("Approved: " + user.approved);
-      console.log("Raw data: " + JSON.stringify(user));
-      console.log ("\n\n");
-            
-      user = Meteor.users.find({approved:{$ne: 1}}).fetch();
-      console.log ("User name: " + user.name);
-      console.log ("Approved: " + user.approved);
-      console.log("Raw data: " + JSON.stringify(user));
-      console.log ("\n\n");
+    if (Meteor.user().admin) {
+      Meteor.users.update({ _id: id }, { $set: change });
+      return "Done..."
+    }
+    throw new Meteor.Error("Non-admins can't do this", "Invalid User");
   },
         
   // Admins can update the current round settings (end date and round message).
@@ -302,7 +294,8 @@ Meteor.methods({
     Settings.update ({}, {$set: {roundMsg:roundMsg, roundEnds:roundEnds}});
     return ("Settings updated succesfully");
   },
-    
+
+  // Lets a player update results, and automatically send email notifications    
   reportResults:function (aboveResult, belowResult, bonusUserName, bonusResult) {
       var resultStatus = "";
       var user = Meteor.user();
@@ -398,23 +391,39 @@ Meteor.methods({
         Meteor.users.remove (player._id);
       } else {
         console.log("Updating player " + player.profile.name + " (" + player.accountType + " )");
-        Meteor.users.update(player._id, {$set: {
-          rank: parseInt(player.rank),
-          points: parseFloat(player.points),
-          profile: player.profile,  // name, email, activeNextRound
-          lastRound: player.lastRound,
-          active: player.active,
-          admin: player.admin,
-          aboveUser: "",
-          aboveResult: "",
-          belowUser: "",
-          belowResult: "",
-          bonusUser: "",
-          bonusResult: "",
-          prevRank: player.prevRank,
-          prevAboveResult: player.prevAboveResult,
-          prevBelowResult: player.prevBelowResult,
-          prevBonusResult: player.prevBonusResult}})
+        // Update user
+        Meteor.users.update(player._id, {
+          $set: {
+            rank: parseInt(player.rank),
+            points: parseFloat(player.points),
+            profile: player.profile,  // name, email, activeNextRound
+            lastRound: player.lastRound,
+            active: player.active,
+            admin: player.admin,
+            aboveUser: "",
+            aboveResult: "",
+            belowUser: "",
+            belowResult: "",
+            bonusUser: "",
+            bonusResult: "",
+            prevRank: player.prevRank,
+            prevAboveResult: player.prevAboveResult,
+            prevBelowResult: player.prevBelowResult,
+            prevBonusResult: player.prevBonusResult
+          }
+        });
+        // Add a user history record for the round (if it doesn't already exist)
+        if (!History.findOne({ userId: player._id, roundEnds: player.lastRound })) {
+          History.insert({
+            userId: player._id,
+            roundEnds: player.lastRound,
+            roundSort: new Date(player.lastRound).getTime(),
+            rank: player.prevRank,
+            aboveResult: player.prevAboveResult,
+            belowResult: player.prevBelowResult,
+            bonusResult: player.prevBonusResult
+          });
+        }
       }
     }
     
@@ -446,6 +455,35 @@ Meteor.methods({
     // TODO - send new round email
 
     return ("New round created succesfully");
+  },
+
+  // Onetime method to do initial population of player history (copying from user table)
+  // Ideally this data should be removed from the user table (to normalize data) - maybe in the future
+  // TODO add an index created by userId (although with small number of users and keeping no more
+  // than 10 records/user this is not strictly needed)
+  initializeHistory: function () {
+    if (!Meteor.user().admin) {
+      throw new Meteor.Error("Non-admins can't (re)initialize history", "Invalid User");
+      return;
+    }
+
+    console.log("+initializeHistory");
+    History.remove({});
+    console.log("Cleared history: count is now " + History.find({}).count());
+    var users = Meteor.users.find({}).fetch();
+    for (var ix = 0; ix < users.length; ix++) {
+      var user = users[ix];
+      console.log("Adding history for user " + user.profile.name);
+      History.insert({
+        userId: user._id,
+        roundEnds: user.lastRound,
+        roundSort: new Date(user.lastRound).getTime(),
+        rank: user.prevRank,
+        aboveResult: user.prevAboveResult,
+        belowResult: user.prevBelowResult,
+        bonusResult: user.prevBonusResult
+      });
+    }
   }
 })
 
