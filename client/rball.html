@@ -1,6 +1,9 @@
 <!-- rball.html; the main web page for the site -->
 <!-- Title and icon that appear in browser tab for this site -->
 <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>rball</title>
     <link rel="shortcut icon" href="/favicon.ico">
     <link rel="icon" href="/favicon.ico">
@@ -37,7 +40,7 @@
 
 <!-- Home page, with context-specific text -->
 <template name="home">
-    <div class="container">
+    <div class="container2">
         <p>
             Welcome to the <a href="/about">MSFT racquetball ladder</a>! <b>The current round ends {{roundEnds}}.</b>
             Please schedule your games now to avoid no-play penalties (or worse). {{roundMsg}}
@@ -60,8 +63,8 @@
     <div>
         <p><b>Report results</b></p>
         <p>
-            Once you have submitted results for both required matches, you will have the option to play and submit results for a bonus match against
-            any other active player who has also finisheded their required matches.
+            Once you have submitted results for both required matches, you will have the option to play a bonus match against
+            another active player who has finisheded their required matches. Bonus matches can only help; losses don't count against you.
         </p>
         <table class="form_table">
             {{#if above}}
@@ -133,7 +136,7 @@
 
 <!-- About page - info about the ladder and rules -->
 <template name="about">
-    <div class="container">
+    <div class="container2">
         <h1>Ladder Overview</h1>
         <p>
             Welcome to the Microsoft Racquetball ladder! Ladder matches are played at the <a href="http://www.proclub.com">pro club</a> as
@@ -177,7 +180,7 @@
 
 <!-- User profile - information and history about a particular user -->
 <template name="userProfile">
-    <div class="container">
+    <div>
         <p>User: {{user.profile.name}}</p>
         <p>Email: <a href="mailto:{{user.profile.email}}">{{user.profile.email}}</a></p>
         <p>Recent history:</p>
@@ -212,7 +215,7 @@
 
 <!-- Settings page - with additional settings options for admins -->
 <template name="settings">
-    <div class="container">
+    <div class="container2">
         {{#if currentUser}}
         {{#if newUser}}
         {{> newUserSettings}}
@@ -229,7 +232,7 @@
 </template>
 
 <template name="newUserSettings">
-    <div class="container">
+    <div>
         <p><b>New Users</b></p>
         <p>
             Welcome to the MSFT ladder. As a new user, please reach out to a couple of active players to schedule some practice matches to help
@@ -250,7 +253,7 @@
 
 <!-- User Settings - top part of settings page -->
 <template name="userSettings">
-    <div class="container">
+    <div>
         <p><b>User Profile</b></p>
         <p>Status for current round: {{activeStatus}}</p>
         <table class="form_table">
@@ -283,7 +286,7 @@
 
 <!-- Admin Settings - bottom part of settings page if user is an admin -->
 <template name="adminSettings">
-    <div class="container">
+    <div>
         <p><b>(Admin) Current round</b></p>
         <p> {{roundStats}}<a href={{nagMailLink}} class="btn" role="button">Send email...</a></p>
         <br />
@@ -361,7 +364,7 @@
 
 <!-- Admin Settings - new round -->
 <template name="newRound">
-    <div class="container">
+    <div>
         <p><b>(Admin) Start new round</b></p>
 {{#if generateNewRound}}
         <table class="form_table" id="manageApprovalsButton">

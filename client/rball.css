@@ -5,9 +5,14 @@
 }
 
 .form_table_data{
-    padding: 5px;
+    padding: 4px;
 }
 
 .form_table {
     background-color: #F8F8F8;
+}
+
+.container2 {
+    margin-left: 8px;
+    margin-right: 8px;
 }

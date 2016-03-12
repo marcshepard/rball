@@ -455,36 +455,8 @@ Meteor.methods({
     // TODO - send new round email
 
     return ("New round created succesfully");
-  },
-
-  // Onetime method to do initial population of player history (copying from user table)
-  // Ideally this data should be removed from the user table (to normalize data) - maybe in the future
-  // TODO add an index created by userId (although with small number of users and keeping no more
-  // than 10 records/user this is not strictly needed)
-  initializeHistory: function () {
-    if (!Meteor.user().admin) {
-      throw new Meteor.Error("Non-admins can't (re)initialize history", "Invalid User");
-      return;
-    }
-
-    console.log("+initializeHistory");
-    History.remove({});
-    console.log("Cleared history: count is now " + History.find({}).count());
-    var users = Meteor.users.find({}).fetch();
-    for (var ix = 0; ix < users.length; ix++) {
-      var user = users[ix];
-      console.log("Adding history for user " + user.profile.name);
-      History.insert({
-        userId: user._id,
-        roundEnds: user.lastRound,
-        roundSort: new Date(user.lastRound).getTime(),
-        rank: user.prevRank,
-        aboveResult: user.prevAboveResult,
-        belowResult: user.prevBelowResult,
-        bonusResult: user.prevBonusResult
-      });
-    }
   }
+
 })
 
 // Startup code
