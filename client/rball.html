@@ -1,4 +1,4 @@
-<!-- rball.html; the main web page for the site -->
+﻿<!-- rball.html; the main web page for the site -->
 <!-- Title and icon that appear in browser tab for this site -->
 <head>
     <meta charset="utf-8">
@@ -107,26 +107,30 @@
             <thead>
                 <tr>
                     <th>Rank</th>
-                    <th>Points</th>
                     <th>Player</th>
+                    <th>Above Result</th>
+                    <th>Below Result</th>
                     <th>Prev Round</th>
                     <th>Prev Rank</th>
                     <th>Prev Above Result</th>
                     <th>Prev Below Result</th>
                     <th>Prev Bonus Result</th>
+                    <th>Points</th>
                 </tr>
             </thead>
             <tbody>
                 {{#each players}}
                 <tr>
                     <td>{{rank}}</td>
-                    <td>{{points}}</td>
                     <td><a href="/player/{{_id}}">{{profile.name}}</a></td>
+                    <td>{{aboveResult}}</td>
+                    <td>{{belowResult}}</td>
                     <td>{{lastRound}}</td>
                     <td>{{prevRank}}</td>
                     <td>{{prevAboveResult}}</td>
                     <td>{{prevBelowResult}}</td>
                     <td>{{prevBonusResult}}</td>
+                    <td>{{points}}</td>
                 </tr>
                 {{/each}}
             </tbody>
