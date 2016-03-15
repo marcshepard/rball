@@ -37,7 +37,6 @@
     {{> yield "main"}}
 </template>
 
-
 <!-- Home page, with context-specific text -->
 <template name="home">
     <div class="container2">
@@ -184,7 +183,7 @@
 
 <!-- User profile - information and history about a particular user -->
 <template name="userProfile">
-    <div>
+    <div class="container2">
         <p>User: {{user.profile.name}}</p>
         <p>Email: <a href="mailto:{{user.profile.email}}">{{user.profile.email}}</a></p>
         <p>Recent history:</p>
