@@ -71,10 +71,34 @@ Template.home.helpers({
 // Helper functions (providing {{var}} support) for activePlayers template
 Template.activePlayers.helpers({
     players:function(){
-        var p = Meteor.users.find({active:1},{sort: {rank: 1}});
-        return p;
+        return Meteor.users.find({active:1},{sort:{rank:1}});
+    },
+    restingPlayers: function () {
+        return Meteor.users.find({active:0},{sort:{username:1}});
+    },
+    showActivePlayers: function () {
+        return Session.get("ShowActivePlayers");
+    },
+    showRestingPlayers: function () {
+        return Session.get("ShowRestingPlayers");
     }
 });
+
+Template.activePlayers.events({
+  "click .js-toggle-active-players": function (event) {
+    if (Session.get("ShowActivePlayers") == 1)
+      Session.set("ShowActivePlayers", 0);
+    else
+      Session.set("ShowActivePlayers", 1);
+  },
+  "click .js-toggle-resting-players": function (event) {
+    if (Session.get("ShowRestingPlayers") == 1)
+      Session.set("ShowRestingPlayers", 0);
+    else
+      Session.set("ShowRestingPlayers", 1);
+  }
+});
+
 
 // Function used in the enterResults helper - to get the right "selector index" for a given persisted result
 function resultStringToSelectorIx (str) {
@@ -550,8 +574,11 @@ Template.newRound.helpers ({
     newRoundPlayers = new Mongo.Collection(null);
     for (var ix = 0; ix < activeUsers.length; ix++) {
       var player = new updatedPlayer(activeUsers[ix]);
-      if (!currentRound())
+      if (!currentRound()) {
         player.newRound();
+      } else if ((player.active == 0) && (player.profile.activeNextRound == 1)) {
+        player.active = 1;
+      }
       newRoundPlayers.insert(player);
     }
 

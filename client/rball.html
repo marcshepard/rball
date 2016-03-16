@@ -100,8 +100,14 @@
 
 <!-- activePlayers list appears on home page for any logged in users -->
 <template name="activePlayers">
-    <p><b>Active players this round</b></p>
-    <div class="table-responsive">
+    <p>
+        <a class="btn btn-default js-toggle-active-players" href="#">
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+        </a>
+        &nbsp;<b>Active players this round</b>
+    </p>
+    {{#if showActivePlayers}}
+    <div class="table-responsive hidden_div" id="active-players">
         <table class="table table-striped table-condensed">
             <thead>
                 <tr>
@@ -135,6 +141,41 @@
             </tbody>
         </table>
     </div>
+    {{/if}}
+    <p>
+        <a class="btn btn-default js-toggle-resting-players" href="#">
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+        </a>
+        &nbsp;<b>Resting players this round</b>
+    </p>
+    {{#if showRestingPlayers}}
+    <div class="table-responsive hidden_div" id="resting-players">
+        <table class="table table-striped table-condensed">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Prev Round</th>
+                    <th>Prev Rank</th>
+                    <th>Prev Above Result</th>
+                    <th>Prev Below Result</th>
+                    <th>Prev Bonus Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each restingPlayers}}
+                <tr>
+                    <td><a href="/player/{{_id}}">{{profile.name}}</a></td>
+                    <td>{{lastRound}}</td>
+                    <td>{{prevRank}}</td>
+                    <td>{{prevAboveResult}}</td>
+                    <td>{{prevBelowResult}}</td>
+                    <td>{{prevBonusResult}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+    </div>
+    {{/if}}
 </template>
 
 <!-- About page - info about the ladder and rules -->
