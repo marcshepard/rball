@@ -170,6 +170,9 @@
                     <td>{{prevAboveResult}}</td>
                     <td>{{prevBelowResult}}</td>
                     <td>{{prevBonusResult}}</td>
+                    {{#if admin}}
+                    <td><button id="{{_id}}" class="delete-resting-player"><span class="glyphicon glyphicon-trash"></span></button></td>
+                    {{/if}}
                 </tr>
                 {{/each}}
             </tbody>
@@ -477,6 +480,7 @@
             <ol>
                 <li>To adjust someones rank (e.g, new players), just type in a new points value for them and the return key - the table will update after you hit return.</li>
                 <li>To merge accounts (e.g, if a player created a FB account to replace their name/password account), cut-paste the new account ID (typically Account=FB) into the "points" field of the old account (the one they last played, typically Account=Local).</li>
+                <li>To force a player to rest next round, type REST in their points.</li>
                 <li>To permanently delete a player, type DEL in their points.</li>
                 <li>If anyone is missing - have them add themselves; new players should create an account (for you to approve), existing players should go to settings and toggle their active/rest state. There is currently no admin UX to do this on behalf of a user.</li>
                 <li>There is currently no admin UX to rest a player for the next round - they have to do this themselves by going to settings.</li>

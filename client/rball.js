@@ -74,13 +74,16 @@ Template.activePlayers.helpers({
         return Meteor.users.find({active:1},{sort:{rank:1}});
     },
     restingPlayers: function () {
-        return Meteor.users.find({active:0},{sort:{username:1}});
+        return Meteor.users.find({active:0},{sort:{"profile.name":1}});
     },
     showActivePlayers: function () {
         return Session.get("ShowActivePlayers");
     },
     showRestingPlayers: function () {
         return Session.get("ShowRestingPlayers");
+    },
+    admin: function () {
+        return Meteor.user().admin;
     }
 });
 
@@ -96,6 +99,9 @@ Template.activePlayers.events({
       Session.set("ShowRestingPlayers", 0);
     else
       Session.set("ShowRestingPlayers", 1);
+  },
+  "click .delete-resting-player": function (event) {
+    Meteor.call("deleteUser", event.currentTarget.id);
   }
 });
 
@@ -513,7 +519,7 @@ updatedPlayer.prototype.newRound = function() {
         if (this.aboveUser) {
             this.points += pointsFor(this.aboveResult);
             if (this.aboveResult == "")
-                this.prevAboveResult = "NP";
+                this.prevAboveResult = "NP" + "(" + Meteor.users.findOne(this.aboveUser).profile.name + ")";
             else
                 this.prevAboveResult = this.aboveResult + "(" + Meteor.users.findOne(this.aboveUser).profile.name + ")";
         }
@@ -521,7 +527,7 @@ updatedPlayer.prototype.newRound = function() {
         if (this.belowUser) {
             this.points += pointsFor(this.belowResult);
             if (this.belowResult == "")
-                this.prevBelowResult = "NP";
+                this.prevBelowResult = "NP" + "(" + Meteor.users.findOne(this.belowUser).profile.name + ")";
             else
                 this.prevBelowResult = this.belowResult + "(" + Meteor.users.findOne(this.belowUser).profile.name + ")";
         }
@@ -576,8 +582,8 @@ Template.newRound.helpers ({
       var player = new updatedPlayer(activeUsers[ix]);
       if (!currentRound()) {
         player.newRound();
-      } else if ((player.active == 0) && (player.profile.activeNextRound == 1)) {
-        player.active = 1;
+      } else if (player.active != player.profile.activeNextRound) {
+        player.active = player.profile.activeNextRound;
       }
       newRoundPlayers.insert(player);
     }
@@ -643,6 +649,9 @@ Template.newRound.events({
     } else if (val == "DEL") {
       // If DEL was entered, mark user for deletion
       newRoundPlayers.update({ _id: id }, { $set: { deleteMe: 1 } });
+    } else if (val == "REST") {
+      // If REST was entered, mark user for resting next round
+      newRoundPlayers.update({ _id: id }, { $set: { active:0, "profile.activeNextRound": 0 } });
     } else if (newRoundPlayers.findOne({ _id: val }) != null) {
       // If another players ID was entered, copy that other players data and delete this player
       newUserId = val;

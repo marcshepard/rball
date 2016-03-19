@@ -454,9 +454,9 @@ Meteor.methods({
     // Update new round settings
     Settings.update({}, { $set: { roundMsg: roundMsg, roundEnds: roundEnds } });
 
-    // TODO - prune old History items (cap by date or by # items/player?)
-
-    // TODO - send new round email
+    // Remove History events > 6 months old
+    var sixMonthsAgo = new Date().getTime() - 1000 * 60 * 60 * 24 * 180;
+    History.remove({ roundSort: { $lt: sixMonthsAgo } });
 
     return ("New round created succesfully");
   }
