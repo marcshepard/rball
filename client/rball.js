@@ -400,7 +400,7 @@ Template.adminSettings.helpers({
       var subject = "MS racquetball ladder reminder";
       var body = "The current round ends on " + roundEnds + ". So far there have been " +
           roundStats + ". As a courtesy to other players and to avoid the no-play penalty, please " +
-          "make sure to play your matches and send the results at http://rball.meteorapp.com " +
+          "make sure to play your matches and send the results at http://rball.herokuapp.com " +
           "before the round ends."
 
       return "mailto:"+escape(to)+"?subject="+subject+"&body="+escape(body);
