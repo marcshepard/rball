@@ -166,7 +166,8 @@ function populateDB () {
 function emailResults (opponent, result) {
   // Let other method calls from the same client start running without waiting for the email sending to complete.
   //this.unblock();
-    
+   
+  console.log ("+emailResults...")
   var user = Meteor.user();
   var toAddr =  user.profile.email + ";" + opponent.profile.email;
   var summary = user.profile.name + " reported a " + result + " against " + opponent.profile.name;
@@ -178,6 +179,7 @@ function emailResults (opponent, result) {
     bcc: "msladder@microsoft.com",
     html: "This is an auto-generated email from http://rball.herokuapp.com, based on results submitted by " + user.profile.name
   });
+  console.log("-emailResults...")
 }
 
 // Function used in the enterResults helper - when entering a result for playerA, enter opposite result for player B
@@ -315,7 +317,8 @@ Meteor.methods({
       }
         
       if (user.belowResult != belowResult) {
-          var opponent = Meteor.users.findOne({_id:user.belowUser});
+          console.log("below results changes - validing user...");
+          var opponent = Meteor.users.findOne({ _id: user.belowUser });
           if ((opponent == null) || (opponent.aboveUser != user._id)) {
               console.warn ("Wrong below user...");
               throw new Meteor.Error("Wrong below user", "Invalid results");
@@ -328,6 +331,7 @@ Meteor.methods({
 
       var bonusUser = Meteor.users.findOne ({"profile.name":bonusUserName,active:1});
       if ((bonusUser != null) && (user.bonusResult != bonusResult)) {
+          console.log("bonus results changes - validing user...");
           var bonusUserId = bonusUser._id;
           if ((user.bonusUser == "") && (!playedRequiredMatches(user))) {
               console.warn ("Reporting bonus without playing required matches...");
