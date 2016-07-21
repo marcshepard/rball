@@ -171,15 +171,18 @@ function emailResults (opponent, result) {
   var user = Meteor.user();
   var toAddr =  user.profile.email + ";" + opponent.profile.email;
   var summary = user.profile.name + " reported a " + result + " against " + opponent.profile.name;
-    
-  Email.send({
-    to: toAddr,
-    from: "msladder@microsoft.com",
-    subject: "MS rball: " + summary,
-    bcc: "msladder@microsoft.com",
-    html: "This is an auto-generated email from http://rball.herokuapp.com, based on results submitted by " + user.profile.name
-  });
-  console.log("-emailResults...")
+  
+    try {
+      Email.send({
+        to: toAddr,
+        from: "msladder@microsoft.com",
+        subject: "MS rball: " + summary,
+        bcc: "msladder@microsoft.com",
+        html: "This is an auto-generated email from http://rball.herokuapp.com, based on results submitted by " + user.profile.name
+      });
+    } catch (err) {}
+
+    console.log("-emailResults...")
 }
 
 // Function used in the enterResults helper - when entering a result for playerA, enter opposite result for player B
@@ -257,14 +260,17 @@ Meteor.methods({
     if (Meteor.user().admin) {
       Meteor.users.update({ _id: id }, { $set: { "approved": 1, "profile.activeNextRound": 1 } });
       user = Meteor.users.findOne({ _id: id });
-      Email.send({
-        to: user.profile.email,
-        from: "msladder@microsoft.com",
-        subject: "You have been approved/activated on the MS rball ladder",
-        bcc: "msladder@microsoft.com",
-        html: `Going forward you can use http://rball.herokuapp.com to manage your active/rest state, and when the next round starts see your scheduled matches and enter results.`
-      });
-      return "Done..."
+      try {
+          Email.send({
+            to: user.profile.email,
+            from: "msladder@microsoft.com",
+            subject: "You have been approved/activated on the MS rball ladder",
+            bcc: "msladder@microsoft.com",
+            html: `Going forward you can use http://rball.herokuapp.com to manage your active/rest state, and when the next round starts see your scheduled matches and enter results.`
+          });
+      } catch (err) {}
+
+    return "Done..."
     }
     throw new Meteor.Error("Non-admins can't do this", "Invalid User");
   },
